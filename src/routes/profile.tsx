@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
-import { CARS } from "@/data/cars";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -11,36 +13,59 @@ export const Route = createFileRoute("/profile")({
       { property: "og:description", content: "Votre tableau de bord SwapCars AI." },
     ],
   }),
-  component: Profile,
+  component: () => <RequireAuth><Profile /></RequireAuth>,
 });
 
 function Profile() {
-  const myCars = CARS.slice(0, 1);
+  const { user } = useAuth();
+  const userId = user!.id;
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", userId],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: myCars = [] } = useQuery({
+    queryKey: ["my-vehicles", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vehicles")
+        .select("*")
+        .eq("owner_id", userId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const initials = (profile?.display_name ?? user!.email ?? "?").slice(0, 2).toUpperCase();
+
   return (
     <PageShell>
       <section className="max-w-5xl mx-auto px-6 md:px-8 py-8">
         <div className="glass rounded-3xl p-8 md:p-10 flex flex-col md:flex-row items-center md:items-end gap-6">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/40 glow flex items-center justify-center text-3xl font-black">AM</div>
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/40 glow flex items-center justify-center text-3xl font-black">{initials}</div>
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-3xl font-black tracking-tight">Alexandre Martin</h1>
-            <p className="text-muted-foreground mt-1">Paris, France · Membre depuis 2024</p>
+            <h1 className="text-3xl font-black tracking-tight">{profile?.display_name ?? user!.email}</h1>
+            <p className="text-muted-foreground mt-1">{profile?.city ?? "Profil SwapCars AI"}</p>
             <div className="flex flex-wrap gap-2 mt-3 justify-center md:justify-start">
               <Badge>✓ Email</Badge>
-              <Badge>✓ Téléphone</Badge>
-              <Badge>✓ Identité</Badge>
-              <Badge>★ Top 5%</Badge>
+              {profile?.verified && <Badge>✓ Identité</Badge>}
             </div>
           </div>
           <div className="text-center">
             <div className="text-xs uppercase tracking-widest text-muted-foreground">Score de confiance</div>
-            <div className="text-5xl font-black text-gradient mt-1">92</div>
+            <div className="text-5xl font-black text-gradient mt-1">{profile?.trust_score ?? 50}</div>
           </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-4 mt-8">
-          <Stat label="Échanges réalisés" v="3" />
-          <Stat label="Note moyenne" v="4.9 ★" />
-          <Stat label="Matches actifs" v="12" />
+          <Stat label="Mes véhicules" v={String(myCars.length)} />
+          <Stat label="Score" v={String(profile?.trust_score ?? 50)} />
+          <Stat label="Statut" v={profile?.verified ? "Vérifié" : "Standard"} />
         </div>
 
         <div className="mt-12">
@@ -50,17 +75,27 @@ function Profile() {
               + Ajouter
             </Link>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {myCars.map((c) => (
-              <Link key={c.id} to="/vehicle/$id" params={{ id: c.id }} className="glass rounded-3xl overflow-hidden hover:scale-[1.02] transition-transform">
-                <img src={c.image} alt={c.brand} width={1024} height={640} className="w-full aspect-[16/10] object-cover" />
-                <div className="p-5">
-                  <div className="font-bold">{c.brand} {c.model}</div>
-                  <div className="text-sm text-muted-foreground mt-1">{c.year} • {c.price.toLocaleString("fr-FR")} €</div>
-                </div>
-              </Link>
-            ))}
-          </div>
+          {myCars.length === 0 ? (
+            <div className="glass rounded-3xl p-12 text-center text-muted-foreground">
+              Aucun véhicule pour le moment.
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {myCars.map((c) => (
+                <Link key={c.id} to="/vehicle/$id" params={{ id: c.id }} className="glass rounded-3xl overflow-hidden hover:scale-[1.02] transition-transform">
+                  {c.photos?.[0] ? (
+                    <img src={c.photos[0]} alt={c.brand} className="w-full aspect-[16/10] object-cover" />
+                  ) : (
+                    <div className="w-full aspect-[16/10] bg-secondary flex items-center justify-center text-4xl">🚗</div>
+                  )}
+                  <div className="p-5">
+                    <div className="font-bold">{c.brand} {c.model}</div>
+                    <div className="text-sm text-muted-foreground mt-1">{c.year} • {Number(c.price).toLocaleString("fr-FR")} €</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </PageShell>
