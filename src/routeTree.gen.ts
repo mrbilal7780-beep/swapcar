@@ -9,38 +9,155 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as ChatRouteImport } from './routes/chat'
+import { Route as AddVehicleRouteImport } from './routes/add-vehicle'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VehicleIdRouteImport } from './routes/vehicle.$id'
 
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatchesRoute = MatchesRouteImport.update({
+  id: '/matches',
+  path: '/matches',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExploreRoute = ExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AddVehicleRoute = AddVehicleRouteImport.update({
+  id: '/add-vehicle',
+  path: '/add-vehicle',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VehicleIdRoute = VehicleIdRouteImport.update({
+  id: '/vehicle/$id',
+  path: '/vehicle/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/add-vehicle': typeof AddVehicleRoute
+  '/chat': typeof ChatRoute
+  '/explore': typeof ExploreRoute
+  '/matches': typeof MatchesRoute
+  '/profile': typeof ProfileRoute
+  '/vehicle/$id': typeof VehicleIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/add-vehicle': typeof AddVehicleRoute
+  '/chat': typeof ChatRoute
+  '/explore': typeof ExploreRoute
+  '/matches': typeof MatchesRoute
+  '/profile': typeof ProfileRoute
+  '/vehicle/$id': typeof VehicleIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/add-vehicle': typeof AddVehicleRoute
+  '/chat': typeof ChatRoute
+  '/explore': typeof ExploreRoute
+  '/matches': typeof MatchesRoute
+  '/profile': typeof ProfileRoute
+  '/vehicle/$id': typeof VehicleIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/add-vehicle'
+    | '/chat'
+    | '/explore'
+    | '/matches'
+    | '/profile'
+    | '/vehicle/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/add-vehicle'
+    | '/chat'
+    | '/explore'
+    | '/matches'
+    | '/profile'
+    | '/vehicle/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/add-vehicle'
+    | '/chat'
+    | '/explore'
+    | '/matches'
+    | '/profile'
+    | '/vehicle/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AddVehicleRoute: typeof AddVehicleRoute
+  ChatRoute: typeof ChatRoute
+  ExploreRoute: typeof ExploreRoute
+  MatchesRoute: typeof MatchesRoute
+  ProfileRoute: typeof ProfileRoute
+  VehicleIdRoute: typeof VehicleIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/matches': {
+      id: '/matches'
+      path: '/matches'
+      fullPath: '/matches'
+      preLoaderRoute: typeof MatchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/add-vehicle': {
+      id: '/add-vehicle'
+      path: '/add-vehicle'
+      fullPath: '/add-vehicle'
+      preLoaderRoute: typeof AddVehicleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +165,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/vehicle/$id': {
+      id: '/vehicle/$id'
+      path: '/vehicle/$id'
+      fullPath: '/vehicle/$id'
+      preLoaderRoute: typeof VehicleIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AddVehicleRoute: AddVehicleRoute,
+  ChatRoute: ChatRoute,
+  ExploreRoute: ExploreRoute,
+  MatchesRoute: MatchesRoute,
+  ProfileRoute: ProfileRoute,
+  VehicleIdRoute: VehicleIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
