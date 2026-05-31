@@ -14,7 +14,224 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      matches: {
+        Row: {
+          created_at: string
+          id: string
+          user_a_id: string
+          user_b_id: string
+          vehicle_a_id: string
+          vehicle_b_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_a_id: string
+          user_b_id: string
+          vehicle_a_id: string
+          vehicle_b_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_a_id?: string
+          user_b_id?: string
+          vehicle_a_id?: string
+          vehicle_b_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_vehicle_a_id_fkey"
+            columns: ["vehicle_a_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_vehicle_b_id_fkey"
+            columns: ["vehicle_b_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          match_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          match_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          match_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          city: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          trust_score: number
+          updated_at: string
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          avatar_url?: string | null
+          city?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          trust_score?: number
+          updated_at?: string
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          avatar_url?: string | null
+          city?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          trust_score?: number
+          updated_at?: string
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
+      vehicle_likes: {
+        Row: {
+          created_at: string
+          id: string
+          liked_vehicle_id: string
+          liker_user_id: string
+          liker_vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          liked_vehicle_id: string
+          liker_user_id: string
+          liker_vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          liked_vehicle_id?: string
+          liker_user_id?: string
+          liker_vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_likes_liked_vehicle_id_fkey"
+            columns: ["liked_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_likes_liker_vehicle_id_fkey"
+            columns: ["liker_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          ai_body_score: number | null
+          ai_estimate: number | null
+          ai_interior_score: number | null
+          ai_mechanical_score: number | null
+          ai_summary: string | null
+          brand: string
+          city: string | null
+          created_at: string
+          description: string | null
+          fuel: string
+          id: string
+          mileage: number
+          model: string
+          owner_id: string
+          photos: string[]
+          price: number
+          status: string
+          transmission: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          ai_body_score?: number | null
+          ai_estimate?: number | null
+          ai_interior_score?: number | null
+          ai_mechanical_score?: number | null
+          ai_summary?: string | null
+          brand: string
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          fuel: string
+          id?: string
+          mileage: number
+          model: string
+          owner_id: string
+          photos?: string[]
+          price: number
+          status?: string
+          transmission: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          ai_body_score?: number | null
+          ai_estimate?: number | null
+          ai_interior_score?: number | null
+          ai_mechanical_score?: number | null
+          ai_summary?: string | null
+          brand?: string
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          fuel?: string
+          id?: string
+          mileage?: number
+          model?: string
+          owner_id?: string
+          photos?: string[]
+          price?: number
+          status?: string
+          transmission?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
