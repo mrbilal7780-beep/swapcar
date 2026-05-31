@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth";
 
 export function Header() {
+  const { user, signOut } = useAuth();
   return (
     <nav className="fixed top-0 inset-x-0 z-50 glass">
       <div className="max-w-7xl mx-auto px-6 md:px-8 py-4 flex items-center justify-between">
@@ -16,12 +18,31 @@ export function Header() {
           <Link to="/chat" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Messages</Link>
           <Link to="/profile" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Profil</Link>
         </div>
-        <Link
-          to="/add-vehicle"
-          className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-full text-sm font-semibold transition glow"
-        >
-          Déposer ma voiture
-        </Link>
+        <div className="flex items-center gap-3">
+          {user ? (
+            <>
+              <Link
+                to="/add-vehicle"
+                className="hidden sm:inline-flex bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-full text-sm font-semibold transition glow"
+              >
+                Déposer
+              </Link>
+              <button
+                onClick={signOut}
+                className="text-sm text-muted-foreground hover:text-foreground transition"
+              >
+                Déconnexion
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-full text-sm font-semibold transition glow"
+            >
+              Connexion
+            </Link>
+          )}
+        </div>
       </div>
     </nav>
   );

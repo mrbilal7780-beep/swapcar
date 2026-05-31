@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as AddVehicleRouteImport } from './routes/add-vehicle'
@@ -25,6 +26,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const MatchesRoute = MatchesRouteImport.update({
   id: '/matches',
   path: '/matches',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreRoute = ExploreRouteImport.update({
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/add-vehicle': typeof AddVehicleRoute
   '/chat': typeof ChatRoute
   '/explore': typeof ExploreRoute
+  '/login': typeof LoginRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
   '/vehicle/$id': typeof VehicleIdRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/add-vehicle': typeof AddVehicleRoute
   '/chat': typeof ChatRoute
   '/explore': typeof ExploreRoute
+  '/login': typeof LoginRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
   '/vehicle/$id': typeof VehicleIdRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/add-vehicle': typeof AddVehicleRoute
   '/chat': typeof ChatRoute
   '/explore': typeof ExploreRoute
+  '/login': typeof LoginRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
   '/vehicle/$id': typeof VehicleIdRoute
@@ -88,6 +97,7 @@ export interface FileRouteTypes {
     | '/add-vehicle'
     | '/chat'
     | '/explore'
+    | '/login'
     | '/matches'
     | '/profile'
     | '/vehicle/$id'
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
     | '/add-vehicle'
     | '/chat'
     | '/explore'
+    | '/login'
     | '/matches'
     | '/profile'
     | '/vehicle/$id'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/add-vehicle'
     | '/chat'
     | '/explore'
+    | '/login'
     | '/matches'
     | '/profile'
     | '/vehicle/$id'
@@ -116,6 +128,7 @@ export interface RootRouteChildren {
   AddVehicleRoute: typeof AddVehicleRoute
   ChatRoute: typeof ChatRoute
   ExploreRoute: typeof ExploreRoute
+  LoginRoute: typeof LoginRoute
   MatchesRoute: typeof MatchesRoute
   ProfileRoute: typeof ProfileRoute
   VehicleIdRoute: typeof VehicleIdRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/matches'
       fullPath: '/matches'
       preLoaderRoute: typeof MatchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore': {
@@ -180,6 +200,7 @@ const rootRouteChildren: RootRouteChildren = {
   AddVehicleRoute: AddVehicleRoute,
   ChatRoute: ChatRoute,
   ExploreRoute: ExploreRoute,
+  LoginRoute: LoginRoute,
   MatchesRoute: MatchesRoute,
   ProfileRoute: ProfileRoute,
   VehicleIdRoute: VehicleIdRoute,
