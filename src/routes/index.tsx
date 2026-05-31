@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
+import { Header, Footer } from "@/components/layout/Header";
 import heroCar from "@/assets/hero-car.jpg";
 import carBmw from "@/assets/car-bmw.jpg";
 import carAudi from "@/assets/car-audi.jpg";
@@ -19,7 +21,7 @@ export const Route = createFileRoute("/")({
 function Index() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
+      <Header />
       <Hero />
       <Matching />
       <Analysis />
@@ -27,28 +29,6 @@ function Index() {
       <CTA />
       <Footer />
     </div>
-  );
-}
-
-function Navbar() {
-  return (
-    <nav className="fixed top-0 inset-x-0 z-50 glass">
-      <div className="max-w-7xl mx-auto px-6 md:px-8 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 glow" />
-          <span className="text-lg font-bold tracking-tight">SWAPCARS <span className="text-gradient">AI</span></span>
-        </div>
-        <div className="hidden md:flex gap-8 text-sm text-muted-foreground">
-          <a href="#matching" className="hover:text-foreground transition">Explorer</a>
-          <a href="#analysis" className="hover:text-foreground transition">Comment ça marche</a>
-          <a href="#analysis" className="hover:text-foreground transition">Estimation IA</a>
-          <a href="#matching" className="hover:text-foreground transition">Échanges</a>
-        </div>
-        <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-full text-sm font-semibold transition glow">
-          Déposer ma voiture
-        </button>
-      </div>
-    </nav>
   );
 }
 
@@ -81,12 +61,12 @@ function Hero() {
             Prenez quelques photos. L'IA analyse votre voiture, estime sa valeur et trouve automatiquement les meilleurs échanges disponibles.
           </p>
           <div className="flex flex-wrap gap-4 mt-10">
-            <button className="bg-foreground text-background hover:bg-foreground/90 px-8 py-4 rounded-full font-semibold transition">
+            <Link to="/add-vehicle" className="bg-foreground text-background hover:bg-foreground/90 px-8 py-4 rounded-full font-semibold transition">
               Déposer ma voiture
-            </button>
-            <button className="glass hover:bg-white/10 px-8 py-4 rounded-full font-semibold transition">
+            </Link>
+            <Link to="/explore" className="glass hover:bg-white/10 px-8 py-4 rounded-full font-semibold transition">
               Voir les échanges
-            </button>
+            </Link>
           </div>
           <div className="flex flex-wrap gap-10 md:gap-16 mt-20">
             <Stat value="12K+" label="Véhicules analysés" />
@@ -237,21 +217,10 @@ function CTA() {
         <p className="relative text-muted-foreground text-lg mt-6">
           Laissez l'intelligence artificielle faire le travail.
         </p>
-        <button className="relative mt-10 bg-primary hover:bg-primary/90 text-primary-foreground px-10 py-4 rounded-full text-base font-semibold transition glow">
+        <Link to="/add-vehicle" className="relative inline-block mt-10 bg-primary hover:bg-primary/90 text-primary-foreground px-10 py-4 rounded-full text-base font-semibold transition glow">
           Commencer maintenant
-        </button>
+        </Link>
       </div>
     </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="border-t border-white/10 py-10 px-6 md:px-8">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
-        <div className="font-semibold tracking-tight">SWAPCARS <span className="text-gradient">AI</span> © 2026</div>
-        <div className="text-muted-foreground">Le futur de l'échange automobile.</div>
-      </div>
-    </footer>
   );
 }
