@@ -41,6 +41,22 @@ function Profile() {
     },
   });
 
+  const { data: matches = [] } = useQuery({
+    queryKey: ["matches-count", userId],
+    queryFn: async () => {
+      const { data } = await supabase.from("matches").select("id");
+      return data ?? [];
+    },
+  });
+
+  const { data: likes = [] } = useQuery({
+    queryKey: ["my-likes-count", userId],
+    queryFn: async () => {
+      const { data } = await supabase.from("vehicle_likes").select("id").eq("liker_user_id", userId);
+      return data ?? [];
+    },
+  });
+
   const initials = (profile?.display_name ?? user!.email ?? "?").slice(0, 2).toUpperCase();
 
   return (
@@ -62,10 +78,28 @@ function Profile() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4 mt-8">
-          <Stat label="Mes véhicules" v={String(myCars.length)} />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+          <Stat label="Véhicules" v={String(myCars.length)} />
+          <Stat label="Likes envoyés" v={String(likes.length)} />
+          <Stat label="Matches" v={String(matches.length)} />
           <Stat label="Score" v={String(profile?.trust_score ?? 50)} />
-          <Stat label="Statut" v={profile?.verified ? "Vérifié" : "Standard"} />
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 mt-8">
+          <Link to="/matches" className="glass rounded-2xl p-6 hover:bg-white/5 transition flex items-center justify-between">
+            <div>
+              <div className="text-xs uppercase tracking-widest text-primary">Découvrir</div>
+              <div className="text-lg font-bold mt-1">Mes matches IA</div>
+            </div>
+            <span className="text-2xl">→</span>
+          </Link>
+          <Link to="/chat" className="glass rounded-2xl p-6 hover:bg-white/5 transition flex items-center justify-between">
+            <div>
+              <div className="text-xs uppercase tracking-widest text-primary">Discuter</div>
+              <div className="text-lg font-bold mt-1">Mes messages</div>
+            </div>
+            <span className="text-2xl">→</span>
+          </Link>
         </div>
 
         <div className="mt-12">
@@ -91,6 +125,9 @@ function Profile() {
                   <div className="p-5">
                     <div className="font-bold">{c.brand} {c.model}</div>
                     <div className="text-sm text-muted-foreground mt-1">{c.year} • {Number(c.price).toLocaleString("fr-FR")} €</div>
+                    {(c as any).ai_body_score != null && (
+                      <div className="text-xs text-primary mt-2">Score IA carrosserie : {(c as any).ai_body_score}/100</div>
+                    )}
                   </div>
                 </Link>
               ))}
