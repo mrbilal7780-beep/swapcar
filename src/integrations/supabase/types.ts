@@ -168,19 +168,33 @@ export type Database = {
           ai_body_score: number | null
           ai_estimate: number | null
           ai_interior_score: number | null
+          ai_issues: Json | null
           ai_mechanical_score: number | null
           ai_summary: string | null
+          body_type: string | null
           brand: string
           city: string | null
+          color: string | null
+          condition: string | null
           created_at: string
+          cylinders: number | null
           description: string | null
+          displacement_cc: number | null
+          doors: number | null
+          drivetrain: string | null
+          first_registration: string | null
           fuel: string
+          gears: number | null
+          generation: string | null
           id: string
           mileage: number
           model: string
           owner_id: string
+          owners_count: number | null
           photos: string[]
+          power_hp: number | null
           price: number
+          seats: number | null
           status: string
           transmission: string
           updated_at: string
@@ -190,19 +204,33 @@ export type Database = {
           ai_body_score?: number | null
           ai_estimate?: number | null
           ai_interior_score?: number | null
+          ai_issues?: Json | null
           ai_mechanical_score?: number | null
           ai_summary?: string | null
+          body_type?: string | null
           brand: string
           city?: string | null
+          color?: string | null
+          condition?: string | null
           created_at?: string
+          cylinders?: number | null
           description?: string | null
+          displacement_cc?: number | null
+          doors?: number | null
+          drivetrain?: string | null
+          first_registration?: string | null
           fuel: string
+          gears?: number | null
+          generation?: string | null
           id?: string
           mileage: number
           model: string
           owner_id: string
+          owners_count?: number | null
           photos?: string[]
+          power_hp?: number | null
           price: number
+          seats?: number | null
           status?: string
           transmission: string
           updated_at?: string
@@ -212,19 +240,33 @@ export type Database = {
           ai_body_score?: number | null
           ai_estimate?: number | null
           ai_interior_score?: number | null
+          ai_issues?: Json | null
           ai_mechanical_score?: number | null
           ai_summary?: string | null
+          body_type?: string | null
           brand?: string
           city?: string | null
+          color?: string | null
+          condition?: string | null
           created_at?: string
+          cylinders?: number | null
           description?: string | null
+          displacement_cc?: number | null
+          doors?: number | null
+          drivetrain?: string | null
+          first_registration?: string | null
           fuel?: string
+          gears?: number | null
+          generation?: string | null
           id?: string
           mileage?: number
           model?: string
           owner_id?: string
+          owners_count?: number | null
           photos?: string[]
+          power_hp?: number | null
           price?: number
+          seats?: number | null
           status?: string
           transmission?: string
           updated_at?: string
