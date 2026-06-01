@@ -1,39 +1,115 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
-import { CARS } from "@/data/cars";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/chat")({
   head: () => ({
     meta: [
       { title: "Messages — SwapCars AI" },
-      { name: "description", content: "Négociez vos échanges en temps réel avec l'assistant IA." },
+      { name: "description", content: "Négociez vos échanges en temps réel." },
       { property: "og:title", content: "Messages — SwapCars AI" },
       { property: "og:description", content: "Discutez. Négociez. Échangez." },
     ],
   }),
-  component: Chat,
+  component: () => <RequireAuth><Chat /></RequireAuth>,
 });
 
-type Msg = { from: "me" | "them" | "ai"; text: string };
+type Match = {
+  id: string;
+  user_a_id: string;
+  user_b_id: string;
+  vehicle_a_id: string;
+  vehicle_b_id: string;
+  created_at: string;
+  other: { id: string; display_name: string | null; avatar_url: string | null };
+  otherVehicle: { id: string; brand: string; model: string; photos: string[]; city: string | null };
+};
 
 function Chat() {
-  const conversations = CARS.slice(1, 5);
-  const [active, setActive] = useState(conversations[0]);
-  const [messages, setMessages] = useState<Msg[]>([
-    { from: "them", text: "Bonjour, votre BMW M340i m'intéresse beaucoup !" },
-    { from: "me", text: "Salut, votre Audi S4 a l'air en super état également." },
-    { from: "ai", text: "💡 Analyse IA : compatibilité 96%. Compensation suggérée : +1 250 € de votre côté." },
-  ]);
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [input, setInput] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  function send() {
-    if (!input.trim()) return;
-    setMessages((m) => [...m, { from: "me", text: input }]);
+  const { data: matches = [] } = useQuery({
+    queryKey: ["matches", user!.id],
+    queryFn: async () => {
+      const { data: ms } = await supabase
+        .from("matches")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!ms || ms.length === 0) return [] as Match[];
+      const otherIds = ms.map((m) => (m.user_a_id === user!.id ? m.user_b_id : m.user_a_id));
+      const otherVehicleIds = ms.map((m) => (m.user_a_id === user!.id ? m.vehicle_b_id : m.vehicle_a_id));
+      const [profs, vehs] = await Promise.all([
+        supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", otherIds),
+        supabase.from("vehicles").select("id, brand, model, photos, city").in("id", otherVehicleIds),
+      ]);
+      const pmap = new Map((profs.data ?? []).map((p) => [p.user_id, p]));
+      const vmap = new Map((vehs.data ?? []).map((v) => [v.id, v]));
+      return ms.map<Match>((m) => {
+        const otherUserId = m.user_a_id === user!.id ? m.user_b_id : m.user_a_id;
+        const otherVehicleId = m.user_a_id === user!.id ? m.vehicle_b_id : m.vehicle_a_id;
+        const p = pmap.get(otherUserId);
+        const v = vmap.get(otherVehicleId);
+        return {
+          ...m,
+          other: { id: otherUserId, display_name: p?.display_name ?? "Utilisateur", avatar_url: p?.avatar_url ?? null },
+          otherVehicle: { id: otherVehicleId, brand: v?.brand ?? "", model: v?.model ?? "", photos: (v?.photos as string[]) ?? [], city: v?.city ?? null },
+        };
+      });
+    },
+  });
+
+  // auto-select first match
+  useEffect(() => {
+    if (!activeId && matches.length > 0) setActiveId(matches[0].id);
+  }, [matches, activeId]);
+
+  const active = matches.find((m) => m.id === activeId) ?? null;
+
+  const { data: messages = [] } = useQuery({
+    queryKey: ["messages", activeId],
+    enabled: !!activeId,
+    queryFn: async () => {
+      const { data } = await supabase.from("messages").select("*").eq("match_id", activeId!).order("created_at", { ascending: true });
+      return data ?? [];
+    },
+  });
+
+  // realtime subscription for active match
+  useEffect(() => {
+    if (!activeId) return;
+    const channel = supabase
+      .channel(`messages:${activeId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `match_id=eq.${activeId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["messages", activeId] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeId, qc]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages.length]);
+
+  async function send() {
+    if (!input.trim() || !activeId) return;
+    const text = input.trim();
     setInput("");
-    setTimeout(() => {
-      setMessages((m) => [...m, { from: "them", text: "Très bien, on peut organiser un essai cette semaine ?" }]);
-    }, 800);
+    const { error } = await supabase.from("messages").insert({
+      match_id: activeId,
+      sender_id: user!.id,
+      content: text,
+    });
+    if (error) toast.error(error.message);
   }
 
   return (
@@ -43,43 +119,59 @@ function Chat() {
           <span className="text-gradient">Messages</span>
         </h1>
 
+        {matches.length === 0 ? (
+          <div className="glass rounded-3xl p-12 text-center">
+            <div className="text-4xl mb-3">💬</div>
+            <h2 className="text-xl font-bold">Aucun match pour le moment</h2>
+            <p className="text-muted-foreground mt-2">Likez des véhicules — quand le propriétaire vous like en retour, une conversation s'ouvre ici.</p>
+            <Link to="/matches" className="inline-block mt-6 bg-primary px-6 py-3 rounded-full font-semibold glow">Découvrir des matches</Link>
+          </div>
+        ) : (
         <div className="grid md:grid-cols-[280px_1fr] gap-6 glass rounded-3xl overflow-hidden min-h-[600px]">
-          {/* Sidebar */}
           <aside className="border-r border-white/10 p-3 space-y-2">
-            {conversations.map((c) => (
+            {matches.map((m) => (
               <button
-                key={c.id}
-                onClick={() => setActive(c)}
-                className={`w-full flex gap-3 p-3 rounded-2xl text-left transition ${active.id === c.id ? "bg-primary/10" : "hover:bg-white/5"}`}
+                key={m.id}
+                onClick={() => setActiveId(m.id)}
+                className={`w-full flex gap-3 p-3 rounded-2xl text-left transition ${activeId === m.id ? "bg-primary/10" : "hover:bg-white/5"}`}
               >
-                <img src={c.image} alt={c.brand} width={1024} height={640} loading="lazy" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+                {m.otherVehicle.photos?.[0] ? (
+                  <img src={m.otherVehicle.photos[0]} alt={m.otherVehicle.brand} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-secondary flex-shrink-0 flex items-center justify-center">🚗</div>
+                )}
                 <div className="min-w-0">
-                  <div className="font-semibold text-sm truncate">{c.owner}</div>
-                  <div className="text-xs text-muted-foreground truncate">{c.brand} {c.model}</div>
+                  <div className="font-semibold text-sm truncate">{m.other.display_name}</div>
+                  <div className="text-xs text-muted-foreground truncate">{m.otherVehicle.brand} {m.otherVehicle.model}</div>
                 </div>
               </button>
             ))}
           </aside>
 
-          {/* Chat */}
           <div className="flex flex-col">
-            <div className="p-4 border-b border-white/10 flex items-center gap-3">
-              <img src={active.image} alt={active.brand} width={1024} height={640} className="w-10 h-10 rounded-xl object-cover" />
-              <div>
-                <div className="font-semibold">{active.owner}</div>
-                <div className="text-xs text-muted-foreground">{active.brand} {active.model} • {active.city}</div>
+            {active && (
+              <div className="p-4 border-b border-white/10 flex items-center gap-3">
+                {active.otherVehicle.photos?.[0] && (
+                  <img src={active.otherVehicle.photos[0]} alt={active.otherVehicle.brand} className="w-10 h-10 rounded-xl object-cover" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold truncate">{active.other.display_name}</div>
+                  <div className="text-xs text-muted-foreground truncate">{active.otherVehicle.brand} {active.otherVehicle.model}{active.otherVehicle.city ? ` • ${active.otherVehicle.city}` : ""}</div>
+                </div>
+                <Link to="/vehicle/$id" params={{ id: active.otherVehicle.id }} className="text-xs glass px-3 py-1.5 rounded-full hover:bg-white/10">Voir le véhicule</Link>
               </div>
-            </div>
+            )}
 
-            <div className="flex-1 p-4 space-y-3 overflow-y-auto max-h-[500px]">
-              {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.from === "me" ? "justify-end" : "justify-start"}`}>
+            <div ref={scrollRef} className="flex-1 p-4 space-y-3 overflow-y-auto max-h-[500px]">
+              {messages.length === 0 && (
+                <div className="text-center text-sm text-muted-foreground py-8">Aucun message — lancez la conversation.</div>
+              )}
+              {messages.map((m) => (
+                <div key={m.id} className={`flex ${m.sender_id === user!.id ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm ${
-                    m.from === "me" ? "bg-primary text-primary-foreground rounded-br-sm" :
-                    m.from === "ai" ? "glass border border-primary/30 text-primary" :
-                    "bg-secondary rounded-bl-sm"
+                    m.sender_id === user!.id ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-secondary rounded-bl-sm"
                   }`}>
-                    {m.text}
+                    {m.content}
                   </div>
                 </div>
               ))}
@@ -92,13 +184,15 @@ function Chat() {
                 onKeyDown={(e) => e.key === "Enter" && send()}
                 placeholder="Votre message..."
                 className="input flex-1"
+                disabled={!active}
               />
-              <button onClick={send} className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 rounded-xl font-semibold glow">
+              <button onClick={send} disabled={!active || !input.trim()} className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 rounded-xl font-semibold glow disabled:opacity-40">
                 Envoyer
               </button>
             </div>
           </div>
         </div>
+        )}
       </section>
     </PageShell>
   );

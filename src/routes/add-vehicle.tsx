@@ -1,11 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
 import { estimateVehicle, analyzePhotos } from "@/lib/ai.functions";
 import { toast } from "sonner";
+import { BRANDS, BRAND_MODELS, FUELS, TRANSMISSIONS, BODY_TYPES, DRIVETRAINS, COLORS, CONDITIONS } from "@/data/specs";
 
 export const Route = createFileRoute("/add-vehicle")({
   head: () => ({
@@ -13,9 +14,6 @@ export const Route = createFileRoute("/add-vehicle")({
   }),
   component: () => <RequireAuth><AddVehicle /></RequireAuth>,
 });
-
-const FUELS = ["Essence", "Diesel", "Hybride", "Électrique"];
-const TRANS = ["Automatique", "Manuelle"];
 
 function AddVehicle() {
   const { user } = useAuth();
@@ -27,14 +25,36 @@ function AddVehicle() {
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
-    brand: "", model: "", year: "2020", mileage: "50000",
-    fuel: "Essence", transmission: "Automatique", city: "", price: "", description: "",
+    brand: "",
+    model: "",
+    generation: "",
+    year: "2020",
+    first_registration: "",
+    mileage: "50000",
+    fuel: "Essence",
+    transmission: "Automatique",
+    body_type: "Berline",
+    doors: "5",
+    seats: "5",
+    color: "Noir",
+    displacement_cc: "",
+    cylinders: "4",
+    power_hp: "",
+    drivetrain: "Traction (avant)",
+    gears: "6",
+    owners_count: "1",
+    condition: "Très bon",
+    city: "",
+    price: "",
+    description: "",
   });
   const [photos, setPhotos] = useState<{ file: File; url: string }[]>([]);
   const [aiEstimate, setAiEstimate] = useState<{ price_eur: number; low_eur: number; high_eur: number; rationale: string } | null>(null);
 
-  const steps = ["Véhicule", "Détails", "Photos", "Analyse IA"];
+  const steps = ["Véhicule", "Motorisation", "État & Prix", "Photos", "Analyse IA"];
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const availableModels = useMemo(() => (form.brand ? BRAND_MODELS[form.brand] ?? [] : []), [form.brand]);
 
   async function pickPhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []).slice(0, 10 - photos.length);
@@ -50,6 +70,9 @@ function AddVehicle() {
           brand: form.brand, model: form.model,
           year: Number(form.year), mileage: Number(form.mileage),
           fuel: form.fuel, transmission: form.transmission,
+          power_hp: form.power_hp ? Number(form.power_hp) : undefined,
+          body_type: form.body_type,
+          condition: form.condition,
           description: form.description,
         },
       });
@@ -69,15 +92,35 @@ function AddVehicle() {
     setBusy(true);
     try {
       // 1. Insert vehicle
-      const { data: vehicle, error } = await supabase.from("vehicles").insert({
+      const insertPayload: any = {
         owner_id: user!.id,
-        brand: form.brand, model: form.model,
-        year: Number(form.year), mileage: Number(form.mileage),
-        price: Number(form.price), fuel: form.fuel, transmission: form.transmission,
-        city: form.city || null, description: form.description || null,
+        brand: form.brand,
+        model: form.model,
+        generation: form.generation || null,
+        year: Number(form.year),
+        first_registration: form.first_registration || null,
+        mileage: Number(form.mileage),
+        price: Number(form.price),
+        fuel: form.fuel,
+        transmission: form.transmission,
+        body_type: form.body_type,
+        doors: form.doors ? Number(form.doors) : null,
+        seats: form.seats ? Number(form.seats) : null,
+        color: form.color,
+        displacement_cc: form.displacement_cc ? Number(form.displacement_cc) : null,
+        cylinders: form.cylinders ? Number(form.cylinders) : null,
+        power_hp: form.power_hp ? Number(form.power_hp) : null,
+        drivetrain: form.drivetrain,
+        gears: form.gears ? Number(form.gears) : null,
+        owners_count: form.owners_count ? Number(form.owners_count) : null,
+        condition: form.condition,
+        city: form.city || null,
+        description: form.description || null,
         ai_estimate: aiEstimate?.price_eur ?? null,
         ai_summary: aiEstimate?.rationale ?? null,
-      }).select().single();
+      };
+      const { data: vehicle, error } = await (supabase.from("vehicles") as any)
+        .insert(insertPayload).select().single();
       if (error) throw error;
 
       // 2. Upload photos
@@ -97,13 +140,16 @@ function AddVehicle() {
 
       // 3. Run photo analysis in background (don't block)
       if (urls.length) {
-        analyzeFn({ data: { photo_urls: urls.slice(0, 5), brand: form.brand, model: form.model } })
-          .then((a) => supabase.from("vehicles").update({
-            ai_body_score: a.body_score,
-            ai_interior_score: a.interior_score,
-            ai_mechanical_score: a.mechanical_score,
-            ai_summary: a.summary,
-          }).eq("id", vehicle.id))
+        analyzeFn({ data: { photo_urls: urls.slice(0, 6), brand: form.brand, model: form.model, year: Number(form.year) } })
+          .then((a) =>
+            (supabase.from("vehicles") as any).update({
+              ai_body_score: a.body_score,
+              ai_interior_score: a.interior_score,
+              ai_mechanical_score: a.mechanical_score,
+              ai_summary: a.summary,
+              ai_issues: { issues: a.issues, strengths: a.strengths },
+            }).eq("id", vehicle.id),
+          )
           .catch((e) => console.error("photo analysis failed", e));
       }
 
@@ -134,10 +180,42 @@ function AddVehicle() {
         <div className="glass rounded-3xl p-6 md:p-8">
           {step === 0 && (
             <div className="grid md:grid-cols-2 gap-4">
-              <Field label="Marque"><input className="input" value={form.brand} onChange={(e) => set("brand", e.target.value)} placeholder="BMW" /></Field>
-              <Field label="Modèle"><input className="input" value={form.model} onChange={(e) => set("model", e.target.value)} placeholder="M340i" /></Field>
-              <Field label="Année"><input type="number" className="input" value={form.year} onChange={(e) => set("year", e.target.value)} /></Field>
+              <Field label="Marque">
+                <select className="input" value={form.brand} onChange={(e) => { set("brand", e.target.value); set("model", ""); }}>
+                  <option value="">— Choisir —</option>
+                  {BRANDS.map((b) => <option key={b}>{b}</option>)}
+                </select>
+              </Field>
+              <Field label="Modèle">
+                <select className="input" value={form.model} onChange={(e) => set("model", e.target.value)} disabled={!form.brand}>
+                  <option value="">— Choisir —</option>
+                  {availableModels.map((m) => <option key={m}>{m}</option>)}
+                </select>
+              </Field>
+              <Field label="Génération (optionnel)"><input className="input" value={form.generation} onChange={(e) => set("generation", e.target.value)} placeholder="G20, Mk8…" /></Field>
+              <Field label="Année"><input type="number" min={1950} max={2030} className="input" value={form.year} onChange={(e) => set("year", e.target.value)} /></Field>
+              <Field label="Première immatriculation"><input type="date" className="input" value={form.first_registration} onChange={(e) => set("first_registration", e.target.value)} /></Field>
               <Field label="Kilométrage"><input type="number" className="input" value={form.mileage} onChange={(e) => set("mileage", e.target.value)} /></Field>
+              <Field label="Carrosserie">
+                <select className="input" value={form.body_type} onChange={(e) => set("body_type", e.target.value)}>
+                  {BODY_TYPES.map((b) => <option key={b}>{b}</option>)}
+                </select>
+              </Field>
+              <Field label="Couleur">
+                <select className="input" value={form.color} onChange={(e) => set("color", e.target.value)}>
+                  {COLORS.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Portes">
+                <select className="input" value={form.doors} onChange={(e) => set("doors", e.target.value)}>
+                  {["2", "3", "4", "5"].map((d) => <option key={d}>{d}</option>)}
+                </select>
+              </Field>
+              <Field label="Places">
+                <select className="input" value={form.seats} onChange={(e) => set("seats", e.target.value)}>
+                  {["2", "4", "5", "7", "9"].map((d) => <option key={d}>{d}</option>)}
+                </select>
+              </Field>
             </div>
           )}
 
@@ -150,22 +228,50 @@ function AddVehicle() {
               </Field>
               <Field label="Transmission">
                 <select className="input" value={form.transmission} onChange={(e) => set("transmission", e.target.value)}>
-                  {TRANS.map((t) => <option key={t}>{t}</option>)}
+                  {TRANSMISSIONS.map((t) => <option key={t}>{t}</option>)}
+                </select>
+              </Field>
+              <Field label="Cylindrée (cm³)"><input type="number" className="input" value={form.displacement_cc} onChange={(e) => set("displacement_cc", e.target.value)} placeholder="2998" /></Field>
+              <Field label="Cylindres">
+                <select className="input" value={form.cylinders} onChange={(e) => set("cylinders", e.target.value)}>
+                  {["3", "4", "5", "6", "8", "10", "12"].map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Puissance (ch)"><input type="number" className="input" value={form.power_hp} onChange={(e) => set("power_hp", e.target.value)} placeholder="374" /></Field>
+              <Field label="Rapports"><input type="number" min={4} max={10} className="input" value={form.gears} onChange={(e) => set("gears", e.target.value)} /></Field>
+              <Field label="Transmission roues">
+                <select className="input" value={form.drivetrain} onChange={(e) => set("drivetrain", e.target.value)}>
+                  {DRIVETRAINS.map((d) => <option key={d}>{d}</option>)}
+                </select>
+              </Field>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <Field label="État général">
+                <select className="input" value={form.condition} onChange={(e) => set("condition", e.target.value)}>
+                  {CONDITIONS.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Propriétaires précédents">
+                <select className="input" value={form.owners_count} onChange={(e) => set("owners_count", e.target.value)}>
+                  {["1", "2", "3", "4", "5+"].map((c) => <option key={c}>{c}</option>)}
                 </select>
               </Field>
               <Field label="Ville"><input className="input" value={form.city} onChange={(e) => set("city", e.target.value)} placeholder="Paris" /></Field>
               <Field label="Prix demandé (€)"><input type="number" className="input" value={form.price} onChange={(e) => set("price", e.target.value)} placeholder="28500" /></Field>
               <div className="md:col-span-2">
-                <Field label="Description">
-                  <textarea className="input min-h-[100px]" value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="État, équipements, entretien…" />
+                <Field label="Description (équipements, entretien, historique)">
+                  <textarea className="input min-h-[120px]" value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Carnet d'entretien à jour, dernière révision en…" />
                 </Field>
               </div>
             </div>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <div>
-              <p className="text-sm text-muted-foreground mb-6">Ajoutez jusqu'à 10 photos. L'IA les analysera après publication.</p>
+              <p className="text-sm text-muted-foreground mb-6">Ajoutez jusqu'à 10 photos sous tous les angles. L'IA détectera la moindre imperfection : rayures, impacts, usure intérieure…</p>
               <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={pickPhotos} />
               <button onClick={() => fileRef.current?.click()} className="glass px-6 py-4 rounded-2xl hover:bg-white/10 w-full">
                 + Ajouter des photos
@@ -182,7 +288,7 @@ function AddVehicle() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="text-center py-4">
               <div className="text-xs uppercase tracking-widest text-primary mb-2">Estimation IA</div>
               <h2 className="text-2xl font-black">{form.brand} {form.model} <span className="text-muted-foreground">{form.year}</span></h2>
@@ -211,12 +317,12 @@ function AddVehicle() {
             </div>
           )}
 
-          {step < 3 && (
+          {step < 4 && (
             <div className="flex justify-between mt-8">
               <button onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0} className="glass px-6 py-3 rounded-full disabled:opacity-40">
                 Précédent
               </button>
-              <button onClick={() => setStep((s) => s + 1)} className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-full font-semibold glow">
+              <button onClick={() => setStep((s) => s + 1)} disabled={step === 0 && (!form.brand || !form.model)} className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-full font-semibold glow disabled:opacity-40">
                 Suivant
               </button>
             </div>
