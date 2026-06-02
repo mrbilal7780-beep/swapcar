@@ -12,11 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as FeedRouteImport } from './routes/feed'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as AddVehicleRouteImport } from './routes/add-vehicle'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VehicleIdRouteImport } from './routes/vehicle.$id'
+import { Route as UUsernameRouteImport } from './routes/u.$username'
 
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
@@ -31,6 +33,11 @@ const MatchesRoute = MatchesRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedRoute = FeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreRoute = ExploreRouteImport.update({
@@ -58,15 +65,22 @@ const VehicleIdRoute = VehicleIdRouteImport.update({
   path: '/vehicle/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UUsernameRoute = UUsernameRouteImport.update({
+  id: '/u/$username',
+  path: '/u/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/add-vehicle': typeof AddVehicleRoute
   '/chat': typeof ChatRoute
   '/explore': typeof ExploreRoute
+  '/feed': typeof FeedRoute
   '/login': typeof LoginRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/u/$username': typeof UUsernameRoute
   '/vehicle/$id': typeof VehicleIdRoute
 }
 export interface FileRoutesByTo {
@@ -74,9 +88,11 @@ export interface FileRoutesByTo {
   '/add-vehicle': typeof AddVehicleRoute
   '/chat': typeof ChatRoute
   '/explore': typeof ExploreRoute
+  '/feed': typeof FeedRoute
   '/login': typeof LoginRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/u/$username': typeof UUsernameRoute
   '/vehicle/$id': typeof VehicleIdRoute
 }
 export interface FileRoutesById {
@@ -85,9 +101,11 @@ export interface FileRoutesById {
   '/add-vehicle': typeof AddVehicleRoute
   '/chat': typeof ChatRoute
   '/explore': typeof ExploreRoute
+  '/feed': typeof FeedRoute
   '/login': typeof LoginRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/u/$username': typeof UUsernameRoute
   '/vehicle/$id': typeof VehicleIdRoute
 }
 export interface FileRouteTypes {
@@ -97,9 +115,11 @@ export interface FileRouteTypes {
     | '/add-vehicle'
     | '/chat'
     | '/explore'
+    | '/feed'
     | '/login'
     | '/matches'
     | '/profile'
+    | '/u/$username'
     | '/vehicle/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -107,9 +127,11 @@ export interface FileRouteTypes {
     | '/add-vehicle'
     | '/chat'
     | '/explore'
+    | '/feed'
     | '/login'
     | '/matches'
     | '/profile'
+    | '/u/$username'
     | '/vehicle/$id'
   id:
     | '__root__'
@@ -117,9 +139,11 @@ export interface FileRouteTypes {
     | '/add-vehicle'
     | '/chat'
     | '/explore'
+    | '/feed'
     | '/login'
     | '/matches'
     | '/profile'
+    | '/u/$username'
     | '/vehicle/$id'
   fileRoutesById: FileRoutesById
 }
@@ -128,9 +152,11 @@ export interface RootRouteChildren {
   AddVehicleRoute: typeof AddVehicleRoute
   ChatRoute: typeof ChatRoute
   ExploreRoute: typeof ExploreRoute
+  FeedRoute: typeof FeedRoute
   LoginRoute: typeof LoginRoute
   MatchesRoute: typeof MatchesRoute
   ProfileRoute: typeof ProfileRoute
+  UUsernameRoute: typeof UUsernameRoute
   VehicleIdRoute: typeof VehicleIdRoute
 }
 
@@ -155,6 +181,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feed': {
+      id: '/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof FeedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore': {
@@ -192,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VehicleIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/u/$username': {
+      id: '/u/$username'
+      path: '/u/$username'
+      fullPath: '/u/$username'
+      preLoaderRoute: typeof UUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -200,21 +240,13 @@ const rootRouteChildren: RootRouteChildren = {
   AddVehicleRoute: AddVehicleRoute,
   ChatRoute: ChatRoute,
   ExploreRoute: ExploreRoute,
+  FeedRoute: FeedRoute,
   LoginRoute: LoginRoute,
   MatchesRoute: MatchesRoute,
   ProfileRoute: ProfileRoute,
+  UUsernameRoute: UUsernameRoute,
   VehicleIdRoute: VehicleIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
