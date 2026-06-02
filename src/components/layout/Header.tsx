@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
+import { NotificationsBell } from "@/components/social/NotificationsBell";
 
 export function Header() {
   const { user, signOut } = useAuth();
@@ -13,6 +14,7 @@ export function Header() {
           </span>
         </Link>
         <div className="hidden md:flex gap-8 text-sm text-muted-foreground">
+          <Link to="/feed" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Feed</Link>
           <Link to="/explore" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Explorer</Link>
           <Link to="/matches" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Matches</Link>
           <Link to="/chat" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Messages</Link>
@@ -21,6 +23,7 @@ export function Header() {
         <div className="flex items-center gap-3">
           {user ? (
             <>
+              <NotificationsBell />
               <Link
                 to="/add-vehicle"
                 className="hidden sm:inline-flex bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-full text-sm font-semibold transition glow"
