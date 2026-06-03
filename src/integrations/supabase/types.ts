@@ -346,6 +346,8 @@ export type Database = {
           gears: number | null
           generation: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           mileage: number
           model: string
           owner_id: string
@@ -382,6 +384,8 @@ export type Database = {
           gears?: number | null
           generation?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           mileage: number
           model: string
           owner_id: string
@@ -418,6 +422,8 @@ export type Database = {
           gears?: number | null
           generation?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           mileage?: number
           model?: string
           owner_id?: string
