@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           created_at: string
@@ -88,38 +109,176 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          data: Json | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          read: boolean
+          type: string
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          data?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          read?: boolean
+          type: string
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          data?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          read?: boolean
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      post_comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: []
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      posts: {
+        Row: {
+          author_id: string
+          comments_count: number
+          content: string | null
+          created_at: string
+          id: string
+          likes_count: number
+          media_type: string
+          media_urls: string[]
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          author_id: string
+          comments_count?: number
+          content?: string | null
+          created_at?: string
+          id?: string
+          likes_count?: number
+          media_type?: string
+          media_urls?: string[]
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          author_id?: string
+          comments_count?: number
+          content?: string | null
+          created_at?: string
+          id?: string
+          likes_count?: number
+          media_type?: string
+          media_urls?: string[]
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           city: string | null
+          cover_url: string | null
           created_at: string
           display_name: string | null
+          followers_count: number
+          following_count: number
           id: string
+          posts_count: number
           trust_score: number
           updated_at: string
           user_id: string
+          username: string | null
           verified: boolean
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           city?: string | null
+          cover_url?: string | null
           created_at?: string
           display_name?: string | null
+          followers_count?: number
+          following_count?: number
           id?: string
+          posts_count?: number
           trust_score?: number
           updated_at?: string
           user_id: string
+          username?: string | null
           verified?: boolean
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           city?: string | null
+          cover_url?: string | null
           created_at?: string
           display_name?: string | null
+          followers_count?: number
+          following_count?: number
           id?: string
+          posts_count?: number
           trust_score?: number
           updated_at?: string
           user_id?: string
+          username?: string | null
           verified?: boolean
         }
         Relationships: []
