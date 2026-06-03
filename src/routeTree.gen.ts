@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as MapRouteImport } from './routes/map'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as ExploreRouteImport } from './routes/explore'
@@ -28,6 +29,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const MatchesRoute = MatchesRouteImport.update({
   id: '/matches',
   path: '/matches',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
   '/u/$username': typeof UUsernameRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
   '/u/$username': typeof UUsernameRoute
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
   '/u/$username': typeof UUsernameRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/feed'
     | '/login'
+    | '/map'
     | '/matches'
     | '/profile'
     | '/u/$username'
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/feed'
     | '/login'
+    | '/map'
     | '/matches'
     | '/profile'
     | '/u/$username'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/feed'
     | '/login'
+    | '/map'
     | '/matches'
     | '/profile'
     | '/u/$username'
@@ -154,6 +166,7 @@ export interface RootRouteChildren {
   ExploreRoute: typeof ExploreRoute
   FeedRoute: typeof FeedRoute
   LoginRoute: typeof LoginRoute
+  MapRoute: typeof MapRoute
   MatchesRoute: typeof MatchesRoute
   ProfileRoute: typeof ProfileRoute
   UUsernameRoute: typeof UUsernameRoute
@@ -174,6 +187,13 @@ declare module '@tanstack/react-router' {
       path: '/matches'
       fullPath: '/matches'
       preLoaderRoute: typeof MatchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -242,6 +262,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreRoute: ExploreRoute,
   FeedRoute: FeedRoute,
   LoginRoute: LoginRoute,
+  MapRoute: MapRoute,
   MatchesRoute: MatchesRoute,
   ProfileRoute: ProfileRoute,
   UUsernameRoute: UUsernameRoute,
