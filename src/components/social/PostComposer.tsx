@@ -23,8 +23,11 @@ export function PostComposer() {
           const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
           const { error } = await supabase.storage.from("post-media").upload(path, f);
           if (error) throw error;
-          const { data } = supabase.storage.from("post-media").getPublicUrl(path);
-          urls.push(data.publicUrl);
+          const { data, error: signErr } = await supabase.storage
+            .from("post-media")
+            .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+          if (signErr || !data) throw signErr ?? new Error("URL signature failed");
+          urls.push(data.signedUrl);
           if (f.type.startsWith("video")) mediaType = "video";
         }
         const { error } = await supabase.from("posts").insert({
