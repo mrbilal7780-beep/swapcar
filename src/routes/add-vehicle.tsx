@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
 import { estimateVehicle, analyzePhotos } from "@/lib/ai.functions";
+import { geocodeCity } from "@/lib/map.functions";
 import { toast } from "sonner";
 import { BRANDS, BRAND_MODELS, FUELS, TRANSMISSIONS, BODY_TYPES, DRIVETRAINS, COLORS, CONDITIONS } from "@/data/specs";
 
@@ -21,6 +22,7 @@ function AddVehicle() {
   const fileRef = useRef<HTMLInputElement>(null);
   const estimateFn = useServerFn(estimateVehicle);
   const analyzeFn = useServerFn(analyzePhotos);
+  const geocodeFn = useServerFn(geocodeCity);
 
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -91,6 +93,16 @@ function AddVehicle() {
     }
     setBusy(true);
     try {
+      // 0. Geocode city (non-blocking failure)
+      let geo: { latitude: number; longitude: number } | null = null;
+      if (form.city) {
+        try {
+          const g = await geocodeFn({ data: { query: form.city } });
+          if (g) geo = { latitude: g.latitude, longitude: g.longitude };
+        } catch (e) {
+          console.warn("Geocoding failed", e);
+        }
+      }
       // 1. Insert vehicle
       const insertPayload: any = {
         owner_id: user!.id,
@@ -115,6 +127,8 @@ function AddVehicle() {
         owners_count: form.owners_count ? Number(form.owners_count) : null,
         condition: form.condition,
         city: form.city || null,
+        latitude: geo?.latitude ?? null,
+        longitude: geo?.longitude ?? null,
         description: form.description || null,
         ai_estimate: aiEstimate?.price_eur ?? null,
         ai_summary: aiEstimate?.rationale ?? null,

@@ -16,6 +16,8 @@ export function Header() {
         <div className="hidden md:flex gap-8 text-sm text-muted-foreground">
           <Link to="/feed" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Feed</Link>
           <Link to="/explore" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Explorer</Link>
+          <Link to="/map" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Carte</Link>
+          <Link to="/garage" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Garage</Link>
           <Link to="/matches" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Matches</Link>
           <Link to="/chat" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Messages</Link>
           <Link to="/profile" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Profil</Link>
