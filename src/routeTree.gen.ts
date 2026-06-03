@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as MapRouteImport } from './routes/map'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as GarageRouteImport } from './routes/garage'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as ChatRouteImport } from './routes/chat'
@@ -30,9 +32,19 @@ const MatchesRoute = MatchesRouteImport.update({
   path: '/matches',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GarageRoute = GarageRouteImport.update({
+  id: '/garage',
+  path: '/garage',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeedRoute = FeedRouteImport.update({
@@ -77,7 +89,9 @@ export interface FileRoutesByFullPath {
   '/chat': typeof ChatRoute
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
+  '/garage': typeof GarageRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
   '/u/$username': typeof UUsernameRoute
@@ -89,7 +103,9 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
+  '/garage': typeof GarageRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
   '/u/$username': typeof UUsernameRoute
@@ -102,7 +118,9 @@ export interface FileRoutesById {
   '/chat': typeof ChatRoute
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
+  '/garage': typeof GarageRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
   '/u/$username': typeof UUsernameRoute
@@ -116,7 +134,9 @@ export interface FileRouteTypes {
     | '/chat'
     | '/explore'
     | '/feed'
+    | '/garage'
     | '/login'
+    | '/map'
     | '/matches'
     | '/profile'
     | '/u/$username'
@@ -128,7 +148,9 @@ export interface FileRouteTypes {
     | '/chat'
     | '/explore'
     | '/feed'
+    | '/garage'
     | '/login'
+    | '/map'
     | '/matches'
     | '/profile'
     | '/u/$username'
@@ -140,7 +162,9 @@ export interface FileRouteTypes {
     | '/chat'
     | '/explore'
     | '/feed'
+    | '/garage'
     | '/login'
+    | '/map'
     | '/matches'
     | '/profile'
     | '/u/$username'
@@ -153,7 +177,9 @@ export interface RootRouteChildren {
   ChatRoute: typeof ChatRoute
   ExploreRoute: typeof ExploreRoute
   FeedRoute: typeof FeedRoute
+  GarageRoute: typeof GarageRoute
   LoginRoute: typeof LoginRoute
+  MapRoute: typeof MapRoute
   MatchesRoute: typeof MatchesRoute
   ProfileRoute: typeof ProfileRoute
   UUsernameRoute: typeof UUsernameRoute
@@ -176,11 +202,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatchesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/garage': {
+      id: '/garage'
+      path: '/garage'
+      fullPath: '/garage'
+      preLoaderRoute: typeof GarageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/feed': {
@@ -241,7 +281,9 @@ const rootRouteChildren: RootRouteChildren = {
   ChatRoute: ChatRoute,
   ExploreRoute: ExploreRoute,
   FeedRoute: FeedRoute,
+  GarageRoute: GarageRoute,
   LoginRoute: LoginRoute,
+  MapRoute: MapRoute,
   MatchesRoute: MatchesRoute,
   ProfileRoute: ProfileRoute,
   UUsernameRoute: UUsernameRoute,
