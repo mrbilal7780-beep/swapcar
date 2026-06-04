@@ -40,13 +40,13 @@ function Hero() {
         alt="Voiture premium analysée par SwapCars AI"
         width={1920}
         height={1280}
-        className="absolute inset-0 w-full h-full object-cover opacity-60"
+        className="absolute inset-0 w-full h-full object-cover opacity-60 animate-fade-in"
       />
       <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/30" />
       <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/40" />
 
       <div className="relative max-w-7xl mx-auto px-6 md:px-8 py-32 w-full">
-        <div className="max-w-3xl">
+        <div className="max-w-3xl animate-fade-in">
           <div className="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-xs text-primary mb-8">
             <span className="w-2 h-2 rounded-full bg-primary glow" />
             Intelligence Automobile Nouvelle Génération
@@ -61,10 +61,10 @@ function Hero() {
             Prenez quelques photos. L'IA analyse votre voiture, estime sa valeur et trouve automatiquement les meilleurs échanges disponibles.
           </p>
           <div className="flex flex-wrap gap-4 mt-10">
-            <Link to="/add-vehicle" className="bg-foreground text-background hover:bg-foreground/90 px-8 py-4 rounded-full font-semibold transition">
+            <Link to="/add-vehicle" className="bg-foreground text-background hover:bg-foreground/90 px-8 py-4 rounded-full font-semibold transition hover-scale">
               Déposer ma voiture
             </Link>
-            <Link to="/explore" className="glass hover:bg-white/10 px-8 py-4 rounded-full font-semibold transition">
+            <Link to="/explore" className="glass hover:bg-white/10 px-8 py-4 rounded-full font-semibold transition hover-scale">
               Voir les échanges
             </Link>
           </div>

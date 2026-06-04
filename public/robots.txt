@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+Disallow: /add-vehicle
+Disallow: /garage
+Disallow: /chat
+Disallow: /matches
+Disallow: /profile
+Disallow: /login
+
+Sitemap: https://swapcar.lovable.app/sitemap.xml
