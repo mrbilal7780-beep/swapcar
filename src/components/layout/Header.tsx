@@ -17,6 +17,7 @@ export function Header() {
           <Link to="/feed" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Feed</Link>
           <Link to="/explore" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Explorer</Link>
           <Link to="/map" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Carte</Link>
+          <Link to="/events" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Événements</Link>
           <Link to="/garage" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Garage</Link>
           <Link to="/matches" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Matches</Link>
           <Link to="/chat" className="hover:text-foreground transition" activeProps={{ className: "text-foreground" }}>Messages</Link>
