@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as MapRouteImport } from './routes/map'
@@ -25,6 +26,11 @@ import { Route as UUsernameRouteImport } from './routes/u.$username'
 import { Route as EventsNewRouteImport } from './routes/events.new'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/events/$id': typeof EventsIdRoute
   '/events/new': typeof EventsNewRoute
   '/u/$username': typeof UUsernameRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/events/$id': typeof EventsIdRoute
   '/events/new': typeof EventsNewRoute
   '/u/$username': typeof UUsernameRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/events/$id': typeof EventsIdRoute
   '/events/new': typeof EventsNewRoute
   '/u/$username': typeof UUsernameRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/map'
     | '/matches'
     | '/profile'
+    | '/sitemap.xml'
     | '/events/$id'
     | '/events/new'
     | '/u/$username'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/map'
     | '/matches'
     | '/profile'
+    | '/sitemap.xml'
     | '/events/$id'
     | '/events/new'
     | '/u/$username'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/map'
     | '/matches'
     | '/profile'
+    | '/sitemap.xml'
     | '/events/$id'
     | '/events/new'
     | '/u/$username'
@@ -218,6 +230,7 @@ export interface RootRouteChildren {
   MapRoute: typeof MapRoute
   MatchesRoute: typeof MatchesRoute
   ProfileRoute: typeof ProfileRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   EventsIdRoute: typeof EventsIdRoute
   EventsNewRoute: typeof EventsNewRoute
   UUsernameRoute: typeof UUsernameRoute
@@ -227,6 +240,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -346,6 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   MapRoute: MapRoute,
   MatchesRoute: MatchesRoute,
   ProfileRoute: ProfileRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   EventsIdRoute: EventsIdRoute,
   EventsNewRoute: EventsNewRoute,
   UUsernameRoute: UUsernameRoute,
