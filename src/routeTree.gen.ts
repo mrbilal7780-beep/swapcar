@@ -22,6 +22,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as EventsIndexRouteImport } from './routes/events.index'
 import { Route as VehicleIdRouteImport } from './routes/vehicle.$id'
 import { Route as UUsernameRouteImport } from './routes/u.$username'
+import { Route as EventsNewRouteImport } from './routes/events.new'
 
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
@@ -88,6 +89,11 @@ const UUsernameRoute = UUsernameRouteImport.update({
   path: '/u/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EventsNewRoute = EventsNewRouteImport.update({
+  id: '/events/new',
+  path: '/events/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/events/new': typeof EventsNewRoute
   '/u/$username': typeof UUsernameRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/events/': typeof EventsIndexRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/events/new': typeof EventsNewRoute
   '/u/$username': typeof UUsernameRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/events': typeof EventsIndexRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/events/new': typeof EventsNewRoute
   '/u/$username': typeof UUsernameRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/events/': typeof EventsIndexRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/map'
     | '/matches'
     | '/profile'
+    | '/events/new'
     | '/u/$username'
     | '/vehicle/$id'
     | '/events/'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/map'
     | '/matches'
     | '/profile'
+    | '/events/new'
     | '/u/$username'
     | '/vehicle/$id'
     | '/events'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/map'
     | '/matches'
     | '/profile'
+    | '/events/new'
     | '/u/$username'
     | '/vehicle/$id'
     | '/events/'
@@ -194,6 +206,7 @@ export interface RootRouteChildren {
   MapRoute: typeof MapRoute
   MatchesRoute: typeof MatchesRoute
   ProfileRoute: typeof ProfileRoute
+  EventsNewRoute: typeof EventsNewRoute
   UUsernameRoute: typeof UUsernameRoute
   VehicleIdRoute: typeof VehicleIdRoute
   EventsIndexRoute: typeof EventsIndexRoute
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/events/new': {
+      id: '/events/new'
+      path: '/events/new'
+      fullPath: '/events/new'
+      preLoaderRoute: typeof EventsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -306,6 +326,7 @@ const rootRouteChildren: RootRouteChildren = {
   MapRoute: MapRoute,
   MatchesRoute: MatchesRoute,
   ProfileRoute: ProfileRoute,
+  EventsNewRoute: EventsNewRoute,
   UUsernameRoute: UUsernameRoute,
   VehicleIdRoute: VehicleIdRoute,
   EventsIndexRoute: EventsIndexRoute,
