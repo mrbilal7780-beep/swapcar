@@ -30,19 +30,32 @@ type V = {
   longitude: number;
 };
 
+type E = {
+  id: string;
+  title: string;
+  cover_url: string | null;
+  city: string | null;
+  starts_at: string;
+  attendees_count: number;
+  latitude: number;
+  longitude: number;
+};
+
 function MapPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const getToken = useServerFn(getMapboxToken);
   const [vehicles, setVehicles] = useState<V[]>([]);
+  const [events, setEvents] = useState<E[]>([]);
   const [selected, setSelected] = useState<V | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<E | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [{ token }, vRes] = await Promise.all([
+        const [{ token }, vRes, eRes] = await Promise.all([
           getToken(),
           supabase
             .from("vehicles")
@@ -51,12 +64,22 @@ function MapPage() {
             .not("latitude", "is", null)
             .not("longitude", "is", null)
             .limit(500),
+          supabase
+            .from("events")
+            .select("id, title, cover_url, city, starts_at, attendees_count, latitude, longitude")
+            .eq("status", "published")
+            .gte("starts_at", new Date(Date.now() - 24 * 3600 * 1000).toISOString())
+            .limit(200),
         ]);
         if (cancelled) return;
         const data = ((vRes.data ?? []) as any[]).filter(
           (v) => typeof v.latitude === "number" && typeof v.longitude === "number",
         ) as V[];
         setVehicles(data);
+        const evs = ((eRes.data ?? []) as any[]).filter(
+          (e) => typeof e.latitude === "number" && typeof e.longitude === "number",
+        ) as E[];
+        setEvents(evs);
 
         mapboxgl.accessToken = token;
         if (!containerRef.current) return;
@@ -81,11 +104,21 @@ function MapPage() {
             new mapboxgl.Marker(el)
               .setLngLat([v.longitude, v.latitude])
               .addTo(map);
-            el.addEventListener("click", () => setSelected(v));
+            el.addEventListener("click", () => { setSelectedEvent(null); setSelected(v); });
+          }
+          for (const e of evs) {
+            const el = document.createElement("div");
+            el.className =
+              "px-2.5 h-9 min-w-9 rounded-full bg-accent border-2 border-background shadow-lg cursor-pointer flex items-center justify-center text-[10px] font-bold text-accent-foreground gap-1";
+            el.innerHTML = `<span>📍</span><span>${e.attendees_count}</span>`;
+            el.title = e.title;
+            new mapboxgl.Marker(el).setLngLat([e.longitude, e.latitude]).addTo(map);
+            el.addEventListener("click", () => { setSelected(null); setSelectedEvent(e); });
           }
           if (data.length > 0) {
             const bounds = new mapboxgl.LngLatBounds();
             data.forEach((v) => bounds.extend([v.longitude, v.latitude]));
+            evs.forEach((e) => bounds.extend([e.longitude, e.latitude]));
             map.fitBounds(bounds, { padding: 80, maxZoom: 10, duration: 0 });
           }
         });
@@ -108,7 +141,7 @@ function MapPage() {
           Carte <span className="text-gradient">communauté</span>
         </h1>
         <p className="text-muted-foreground mt-2">
-          {vehicles.length} véhicule{vehicles.length > 1 ? "s" : ""} géolocalisé{vehicles.length > 1 ? "s" : ""} dans la communauté.
+          {vehicles.length} véhicule{vehicles.length > 1 ? "s" : ""} · {events.length} événement{events.length > 1 ? "s" : ""} à venir.
         </p>
 
         <div className="mt-8 relative rounded-3xl overflow-hidden border border-white/10" style={{ height: "70vh" }}>
@@ -149,6 +182,27 @@ function MapPage() {
                 className="mt-3 inline-block bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-semibold"
               >
                 Voir l'annonce →
+              </Link>
+            </div>
+          )}
+
+          {selectedEvent && (
+            <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 glass rounded-2xl p-4 shadow-2xl">
+              <button onClick={() => setSelectedEvent(null)} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 text-xs" aria-label="Fermer">✕</button>
+              {selectedEvent.cover_url && (
+                <img src={selectedEvent.cover_url} alt={selectedEvent.title} className="w-full h-32 object-cover rounded-xl mb-3" />
+              )}
+              <div className="text-xs uppercase tracking-widest text-muted-foreground">
+                {new Date(selectedEvent.starts_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+              </div>
+              <div className="font-bold mt-1">{selectedEvent.title}</div>
+              <div className="text-muted-foreground text-sm">{selectedEvent.city ?? "—"} · {selectedEvent.attendees_count} participants</div>
+              <Link
+                to="/events/$id"
+                params={{ id: selectedEvent.id }}
+                className="mt-3 inline-block bg-accent text-accent-foreground px-4 py-2 rounded-full text-sm font-semibold"
+              >
+                Voir l'événement →
               </Link>
             </div>
           )}
