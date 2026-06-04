@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.event_attendees_trg() FROM PUBLIC, anon, authenticated;
