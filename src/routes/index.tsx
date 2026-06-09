@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Header, Footer } from "@/components/layout/Header";
 import heroCar from "@/assets/hero-car.jpg";
 import carBmw from "@/assets/car-bmw.jpg";
@@ -23,12 +25,92 @@ function Index() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       <Hero />
+      <Ecosystem />
+      <LiveVehicles />
       <Matching />
       <Analysis />
       <Photos />
       <CTA />
       <Footer />
     </div>
+  );
+}
+
+function Ecosystem() {
+  const modules = [
+    { to: "/explore", icon: "🚗", title: "Explorer", desc: "Tous les véhicules à échanger" },
+    { to: "/map", icon: "🗺️", title: "Carte", desc: "Voitures & meetings près de toi" },
+    { to: "/events", icon: "📅", title: "Événements", desc: "Track days, rallyes, meetups" },
+    { to: "/feed", icon: "📸", title: "Feed", desc: "Le réseau social auto" },
+    { to: "/matches", icon: "💥", title: "Matches", desc: "Tes échanges compatibles IA" },
+    { to: "/garage", icon: "🔧", title: "Garage", desc: "Tes véhicules et stats" },
+  ] as const;
+  return (
+    <section className="py-24 px-6 md:px-8 border-t border-white/5">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center max-w-2xl mx-auto mb-14">
+          <div className="text-xs uppercase tracking-widest text-primary mb-4">L'écosystème</div>
+          <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Tout l'univers auto, en un seul endroit.</h2>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {modules.map((m) => (
+            <Link key={m.to} to={m.to} className="glass rounded-2xl p-6 hover:scale-[1.02] hover:bg-white/[0.06] transition group">
+              <div className="text-3xl mb-4">{m.icon}</div>
+              <h3 className="text-lg font-bold">{m.title}</h3>
+              <p className="text-sm text-muted-foreground mt-1">{m.desc}</p>
+              <div className="mt-4 text-xs text-primary opacity-60 group-hover:opacity-100 transition">Découvrir →</div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LiveVehicles() {
+  const { data: cars = [] } = useQuery({
+    queryKey: ["vehicles", "home-preview"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("vehicles")
+        .select("id, brand, model, year, mileage, fuel, price, city, photos")
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(6);
+      return data ?? [];
+    },
+  });
+  if (cars.length === 0) return null;
+  return (
+    <section className="py-24 px-6 md:px-8 bg-card/30">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-end justify-between mb-10 flex-wrap gap-4">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-primary mb-3">Derniers dépôts</div>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Échangeables maintenant.</h2>
+          </div>
+          <Link to="/explore" className="text-sm text-muted-foreground hover:text-foreground transition">Tout voir →</Link>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {cars.map((c) => (
+            <Link key={c.id} to="/vehicle/$id" params={{ id: c.id }} className="glass rounded-3xl overflow-hidden hover:scale-[1.02] transition-transform">
+              <div className="aspect-[16/10] overflow-hidden bg-secondary">
+                {c.photos?.[0] ? (
+                  <img src={c.photos[0]} alt={`${c.brand} ${c.model}`} loading="lazy" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-4xl">🚗</div>
+                )}
+              </div>
+              <div className="p-5">
+                <h3 className="font-bold">{c.brand} {c.model}</h3>
+                <p className="text-xs text-muted-foreground mt-1">{c.year} • {Number(c.mileage).toLocaleString("fr-FR")} km{c.city ? ` • ${c.city}` : ""}</p>
+                <p className="mt-3 text-xl font-bold">{Number(c.price).toLocaleString("fr-FR")} €</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
