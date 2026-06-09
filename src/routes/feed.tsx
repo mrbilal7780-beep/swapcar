@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/Header";
 import { PostComposer } from "@/components/social/PostComposer";
@@ -21,15 +22,22 @@ export const Route = createFileRoute("/feed")({
 
 function Feed() {
   const { user } = useAuth();
+  const [filter, setFilter] = useState<"recent" | "week" | "month" | "top">("recent");
 
   const { data: posts = [], isLoading } = useQuery<FeedPost[]>({
-    queryKey: ["feed"],
+    queryKey: ["feed", filter],
     queryFn: async () => {
-      const { data: postsData, error } = await supabase
-        .from("posts")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(50);
+      let q = supabase.from("posts").select("*").limit(50);
+      if (filter === "week" || filter === "month") {
+        const days = filter === "week" ? 7 : 30;
+        const since = new Date(Date.now() - days * 86400000).toISOString();
+        q = q.gte("created_at", since).order("created_at", { ascending: false });
+      } else if (filter === "top") {
+        q = q.order("likes_count", { ascending: false }).order("created_at", { ascending: false });
+      } else {
+        q = q.order("created_at", { ascending: false });
+      }
+      const { data: postsData, error } = await q;
       if (error) throw error;
       if (!postsData?.length) return [];
       const authorIds = [...new Set(postsData.map((p) => p.author_id))];
@@ -41,6 +49,13 @@ function Feed() {
       return postsData.map((p) => ({ ...p, author: map.get(p.author_id) ?? null }));
     },
   });
+
+  const filters = [
+    { id: "recent", label: "Récent" },
+    { id: "week", label: "7 jours" },
+    { id: "month", label: "30 jours" },
+    { id: "top", label: "🔥 Top" },
+  ] as const;
 
   return (
     <PageShell>
@@ -64,6 +79,22 @@ function Feed() {
             </Link>
           </div>
         )}
+
+        <div className="flex gap-2 mb-5 overflow-x-auto -mx-2 px-2 pb-1">
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
+                filter === f.id
+                  ? "bg-primary text-primary-foreground glow"
+                  : "glass text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
 
         {isLoading ? (
           <div className="text-center py-20 text-muted-foreground text-sm">Chargement…</div>
