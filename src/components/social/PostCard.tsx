@@ -113,6 +113,23 @@ export function PostCard({ post }: { post: FeedPost }) {
           <span>💬</span>
           <span>{post.comments_count}</span>
         </button>
+        <button
+          onClick={async () => {
+            const url = `${window.location.origin}/u/${handle}`;
+            try {
+              if (navigator.share) {
+                await navigator.share({ title: "SwapCars AI", text: post.content ?? "Regarde ce post", url });
+              } else {
+                await navigator.clipboard.writeText(url);
+              }
+            } catch {}
+          }}
+          className="ml-auto flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium hover:bg-white/5 text-muted-foreground"
+          aria-label="Partager"
+        >
+          <span>↗</span>
+          <span className="hidden sm:inline">Partager</span>
+        </button>
       </div>
 
       {showComments && (
