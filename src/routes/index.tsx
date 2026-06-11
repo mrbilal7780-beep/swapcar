@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Header, Footer } from "@/components/layout/Header";
+import { Header, Footer, MobileTabBar } from "@/components/layout/Header";
 import heroCar from "@/assets/hero-car.jpg";
 import carBmw from "@/assets/car-bmw.jpg";
 import carAudi from "@/assets/car-audi.jpg";
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground pb-24 md:pb-0">
       <Header />
       <Hero />
       <Ecosystem />
@@ -32,6 +32,7 @@ function Index() {
       <Photos />
       <CTA />
       <Footer />
+      <MobileTabBar />
     </div>
   );
 }
