@@ -79,7 +79,7 @@ export function MobileTabBar() {
         {tabs.map((t) => (
           <li key={t.to} className="flex-1">
             <Link
-              to={t.to}
+              to={t.to as string}
               className="flex flex-col items-center gap-0.5 py-1.5 text-[10px] text-muted-foreground transition"
               activeOptions={{ exact: t.to === "/" }}
               activeProps={{ className: "flex flex-col items-center gap-0.5 py-1.5 text-[10px] text-primary" }}
