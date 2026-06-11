@@ -6,7 +6,7 @@ import { createEvent } from "@/lib/events.functions";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/events/new")({
-  head: () => ({ meta: [{ title: "Créer un événement — SwapCars AI" }] }),
+  head: () => ({ meta: [{ title: "Créer un événement — Carswap AI" }] }),
   component: NewEventPage,
 });
 

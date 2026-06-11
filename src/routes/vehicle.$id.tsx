@@ -9,7 +9,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/vehicle/$id")({
   head: () => ({
     meta: [
-      { title: "Véhicule — SwapCars AI" },
+      { title: "Véhicule — Carswap AI" },
       { name: "description", content: "Détails et analyse IA du véhicule" },
     ],
   }),

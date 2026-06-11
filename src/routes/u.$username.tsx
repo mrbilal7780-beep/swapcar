@@ -8,9 +8,9 @@ import { useAuth } from "@/lib/auth";
 export const Route = createFileRoute("/u/$username")({
   head: ({ params }) => ({
     meta: [
-      { title: `@${params.username} — SwapCars AI` },
-      { name: "description", content: `Découvre le profil de @${params.username} sur SwapCars AI.` },
-      { property: "og:title", content: `@${params.username} — SwapCars AI` },
+      { title: `@${params.username} — Carswap AI` },
+      { name: "description", content: `Découvre le profil de @${params.username} sur Carswap AI.` },
+      { property: "og:title", content: `@${params.username} — Carswap AI` },
     ],
   }),
   component: PublicProfile,

@@ -118,7 +118,7 @@ export function PostCard({ post }: { post: FeedPost }) {
             const url = `${window.location.origin}/u/${handle}`;
             try {
               if (navigator.share) {
-                await navigator.share({ title: "SwapCars AI", text: post.content ?? "Regarde ce post", url });
+                await navigator.share({ title: "Carswap AI", text: post.content ?? "Regarde ce post", url });
               } else {
                 await navigator.clipboard.writeText(url);
               }

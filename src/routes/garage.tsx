@@ -6,7 +6,7 @@ import { PageShell } from "@/components/layout/Header";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/garage")({
-  head: () => ({ meta: [{ title: "Mon garage — SwapCars AI" }] }),
+  head: () => ({ meta: [{ title: "Mon garage — Carswap AI" }] }),
   component: () => (
     <RequireAuth>
       <Garage />

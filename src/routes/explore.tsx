@@ -7,9 +7,9 @@ import { PageShell } from "@/components/layout/Header";
 export const Route = createFileRoute("/explore")({
   head: () => ({
     meta: [
-      { title: "Explorer les véhicules — SwapCars AI" },
+      { title: "Explorer les véhicules — Carswap AI" },
       { name: "description", content: "Parcourez les véhicules disponibles à l'échange et filtrez par marque, budget et carburant." },
-      { property: "og:title", content: "Explorer — SwapCars AI" },
+      { property: "og:title", content: "Explorer — Carswap AI" },
       { property: "og:description", content: "Trouvez le véhicule parfait à échanger." },
     ],
   }),

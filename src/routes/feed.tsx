@@ -11,9 +11,9 @@ import { Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/feed")({
   head: () => ({
     meta: [
-      { title: "Feed — SwapCars AI" },
+      { title: "Feed — Carswap AI" },
       { name: "description", content: "Le feed automobile communautaire. Partage tes builds, suis les meilleurs garages." },
-      { property: "og:title", content: "Feed automobile — SwapCars AI" },
+      { property: "og:title", content: "Feed automobile — Carswap AI" },
       { property: "og:description", content: "Le réseau social des passionnés d'automobile." },
     ],
   }),

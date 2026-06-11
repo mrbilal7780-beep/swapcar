@@ -7,10 +7,10 @@ import { PageShell } from "@/components/layout/Header";
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
-      { title: "Mon profil — SwapCars AI" },
+      { title: "Mon profil — Carswap AI" },
       { name: "description", content: "Gérez votre profil, vos véhicules et votre score de confiance." },
-      { property: "og:title", content: "Mon profil — SwapCars AI" },
-      { property: "og:description", content: "Votre tableau de bord SwapCars AI." },
+      { property: "og:title", content: "Mon profil — Carswap AI" },
+      { property: "og:description", content: "Votre tableau de bord Carswap AI." },
     ],
   }),
   component: () => <RequireAuth><Profile /></RequireAuth>,
@@ -66,7 +66,7 @@ function Profile() {
           <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/40 glow flex items-center justify-center text-3xl font-black">{initials}</div>
           <div className="flex-1 text-center md:text-left">
             <h1 className="text-3xl font-black tracking-tight">{profile?.display_name ?? user!.email}</h1>
-            <p className="text-muted-foreground mt-1">{profile?.city ?? "Profil SwapCars AI"}</p>
+            <p className="text-muted-foreground mt-1">{profile?.city ?? "Profil Carswap AI"}</p>
             <div className="flex flex-wrap gap-2 mt-3 justify-center md:justify-start">
               <Badge>✓ Email</Badge>
               {profile?.verified && <Badge>✓ Identité</Badge>}
