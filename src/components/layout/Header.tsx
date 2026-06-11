@@ -63,13 +63,13 @@ export function Header() {
 
 export function MobileTabBar() {
   const { user } = useAuth();
-  const tabs = [
+  const tabs: { to: string; icon: string; label: string; primary?: boolean }[] = [
     { to: "/", icon: "🏠", label: "Accueil" },
     { to: "/explore", icon: "🚗", label: "Explorer" },
     { to: "/add-vehicle", icon: "➕", label: "Déposer", primary: true },
     { to: "/feed", icon: "📸", label: "Feed" },
     { to: user ? "/profile" : "/login", icon: user ? "👤" : "🔐", label: user ? "Profil" : "Connexion" },
-  ] as const;
+  ];
   return (
     <nav
       className="md:hidden fixed bottom-0 inset-x-0 z-50 glass border-t border-white/10 pb-[env(safe-area-inset-bottom)]"
