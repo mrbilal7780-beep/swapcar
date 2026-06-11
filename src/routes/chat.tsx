@@ -9,9 +9,9 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/chat")({
   head: () => ({
     meta: [
-      { title: "Messages — SwapCars AI" },
+      { title: "Messages — Carswap AI" },
       { name: "description", content: "Négociez vos échanges en temps réel." },
-      { property: "og:title", content: "Messages — SwapCars AI" },
+      { property: "og:title", content: "Messages — Carswap AI" },
       { property: "og:description", content: "Discutez. Négociez. Échangez." },
     ],
   }),

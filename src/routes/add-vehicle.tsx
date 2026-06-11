@@ -11,7 +11,7 @@ import { BRANDS, BRAND_MODELS, FUELS, TRANSMISSIONS, BODY_TYPES, DRIVETRAINS, CO
 
 export const Route = createFileRoute("/add-vehicle")({
   head: () => ({
-    meta: [{ title: "Déposer mon véhicule — SwapCars AI" }],
+    meta: [{ title: "Déposer mon véhicule — Carswap AI" }],
   }),
   component: () => <RequireAuth><AddVehicle /></RequireAuth>,
 });

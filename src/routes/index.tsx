@@ -10,9 +10,9 @@ import carAudi from "@/assets/car-audi.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SwapCars AI — Échangez votre voiture avec l'intelligence artificielle" },
+      { title: "Carswap AI — Échangez votre voiture avec l'intelligence artificielle" },
       { name: "description", content: "La plateforme premium d'échange automobile. L'IA analyse votre voiture, estime sa valeur et trouve les meilleurs échanges." },
-      { property: "og:title", content: "SwapCars AI — Le futur de l'échange automobile" },
+      { property: "og:title", content: "Carswap AI — Le futur de l'échange automobile" },
       { property: "og:description", content: "Photo, analyse IA, estimation, matching. Trouvez votre prochain véhicule sans vendre le vôtre." },
       { property: "og:image", content: heroCar },
     ],
@@ -120,7 +120,7 @@ function Hero() {
     <section className="relative min-h-screen flex items-center overflow-hidden">
       <img
         src={heroCar}
-        alt="Voiture premium analysée par SwapCars AI"
+        alt="Voiture premium analysée par Carswap AI"
         width={1920}
         height={1280}
         className="absolute inset-0 w-full h-full object-cover opacity-60 animate-fade-in"

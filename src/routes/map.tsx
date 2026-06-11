@@ -11,8 +11,8 @@ import { Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/map")({
   head: () => ({
     meta: [
-      { title: "Carte communauté — SwapCars AI" },
-      { name: "description", content: "Découvre les véhicules de la communauté SwapCars autour de toi." },
+      { title: "Carte communauté — Carswap AI" },
+      { name: "description", content: "Découvre les véhicules de la communauté Carswap autour de toi." },
     ],
   }),
   component: MapPage,

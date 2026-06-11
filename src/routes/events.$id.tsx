@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { rsvpEvent } from "@/lib/events.functions";
 
 export const Route = createFileRoute("/events/$id")({
-  head: () => ({ meta: [{ title: "Événement — SwapCars AI" }] }),
+  head: () => ({ meta: [{ title: "Événement — Carswap AI" }] }),
   component: EventDetail,
 });
 

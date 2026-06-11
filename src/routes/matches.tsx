@@ -9,9 +9,9 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/matches")({
   head: () => ({
     meta: [
-      { title: "Mes matches — SwapCars AI" },
+      { title: "Mes matches — Carswap AI" },
       { name: "description", content: "Découvrez les véhicules les plus compatibles avec le vôtre, façon Tinder." },
-      { property: "og:title", content: "Matches IA — SwapCars AI" },
+      { property: "og:title", content: "Matches IA — Carswap AI" },
       { property: "og:description", content: "Swipez. Échangez. Roulez." },
     ],
   }),

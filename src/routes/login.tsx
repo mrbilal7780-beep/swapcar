@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Header, Footer } from "@/components/layout/Header";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Connexion — SwapCars AI" }] }),
+  head: () => ({ meta: [{ title: "Connexion — Carswap AI" }] }),
   component: LoginPage,
 });
 

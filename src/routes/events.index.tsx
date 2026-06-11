@@ -6,7 +6,7 @@ import { PageShell } from "@/components/layout/Header";
 export const Route = createFileRoute("/events/")({
   head: () => ({
     meta: [
-      { title: "Événements auto — SwapCars AI" },
+      { title: "Événements auto — Carswap AI" },
       { name: "description", content: "Meetings, sorties circuit et rassemblements automobiles près de chez toi." },
     ],
   }),
