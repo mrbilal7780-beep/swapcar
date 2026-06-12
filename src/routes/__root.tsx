@@ -73,21 +73,23 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({ head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Carswap AI — Échange automobile intelligent" },
-      { name: "description", content: "Carswap AI : la plateforme premium d'échange automobile. IA, matching, communauté, événements." },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { title: "TORQUE — Premium Automotive Social Network" },
+      { name: "description", content: "TORQUE: The world's premium automotive social network for car enthusiasts. Instagram + Threads + TikTok + Strava for cars." },
       { name: "theme-color", content: "#0a0a0a" },
-      { property: "og:title", content: "Carswap AI" },
-      { property: "og:description", content: "Échange automobile premium propulsé par l'IA." },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "TORQUE" },
+      { property: "og:title", content: "TORQUE — Premium Automotive Social Network" },
+      { property: "og:description", content: "The world's premium automotive social network. Connect, share, discover." },
       { property: "og:type", content: "website" },
-      { property: "og:site_name", content: "Carswap AI" },
+      { property: "og:site_name", content: "TORQUE" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Carswap AI" },
-      { name: "twitter:description", content: "Échange automobile premium propulsé par l'IA." },
+      { name: "twitter:title", content: "TORQUE" },
+      { name: "twitter:description", content: "The world's premium automotive social network." },
     ],
     links: [
       {
@@ -97,6 +99,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" },
+      { rel: "icon", href: "/torque-icon.svg" },
+      { rel: "apple-touch-icon", href: "/torque-apple-touch-icon.png" },
+      { rel: "manifest", href: "/manifest.json" },
     ],
     scripts: [
       {
@@ -104,9 +109,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Organization",
-          name: "Carswap AI",
-          url: "https://swapcar.lovable.app",
-          description: "Plateforme d'échange automobile premium propulsée par l'IA.",
+          name: "TORQUE",
+          url: "https://torque.app",
+          description: "The world's premium automotive social network.",
         }),
       },
     ],
@@ -123,7 +128,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className="bg-background text-foreground">
         {children}
         <Scripts />
       </body>
