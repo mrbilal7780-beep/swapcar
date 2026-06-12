@@ -57,7 +57,6 @@ function FeedPage() {
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const [saved, setSaved] = useState<Record<string, boolean>>({});
 
-  // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -92,7 +91,6 @@ function FeedPage() {
     <div className="min-h-screen bg-background pb-20">
       <style>{`html { padding-top: max(0px, env(safe-area-inset-top)); padding-bottom: max(0px, env(safe-area-inset-bottom)); padding-left: max(0px, env(safe-area-inset-left)); padding-right: max(0px, env(safe-area-inset-right)); }`}</style>
 
-      {/* Header */}
       <div className="sticky top-0 z-40 border-b border-white/5 bg-background/80 backdrop-blur-md">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-black">TORQUE Feed</h1>
@@ -102,13 +100,12 @@ function FeedPage() {
         </div>
       </div>
 
-      {/* Feed */}
       <div className="max-w-2xl mx-auto divide-y divide-white/5">
         {posts.length === 0 ? (
           <div className="h-96 flex items-center justify-center text-center px-4">
             <div>
-              <div className="text-4xl mb-3">🏁</div>
-              <p className="text-muted-foreground mb-4">No posts yet. Follow some accounts to get started!</p>
+              <div className="text-4xl mb-3">No posts</div>
+              <p className="text-muted-foreground mb-4">Follow accounts to get started</p>
               <button className="px-6 py-2 bg-primary text-primary-foreground rounded-full font-semibold text-sm hover:bg-primary/90 transition">
                 Explore
               </button>
@@ -135,7 +132,6 @@ function FeedPage() {
         )}
       </div>
 
-      {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
     </div>
   );
@@ -152,7 +148,6 @@ interface PostCardProps {
 function PostCard({ post, liked, saved, onLike, onSave }: PostCardProps) {
   return (
     <article className="bg-background hover:bg-white/2.5 transition">
-      {/* Header */}
       <div className="p-4 flex items-start justify-between">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex-shrink-0" />
@@ -166,7 +161,6 @@ function PostCard({ post, liked, saved, onLike, onSave }: PostCardProps) {
         </button>
       </div>
 
-      {/* Content */}
       <div className="px-4">
         <p className="text-sm leading-relaxed text-foreground mb-3">{post.content}</p>
         {post.image_url && (
@@ -178,13 +172,11 @@ function PostCard({ post, liked, saved, onLike, onSave }: PostCardProps) {
         )}
       </div>
 
-      {/* Stats */}
       <div className="px-4 py-2 flex text-xs text-muted-foreground gap-4 border-t border-white/5">
         <span>{post.likes_count} likes</span>
         <span>{post.comments_count} comments</span>
       </div>
 
-      {/* Actions */}
       <div className="p-3 flex items-center justify-around border-t border-white/5">
         <ActionButton icon={Heart} label="Like" active={liked} onClick={onLike} />
         <ActionButton icon={MessageCircle} label="Comment" />
@@ -225,24 +217,24 @@ function MobileBottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 border-t border-white/5 bg-background/80 backdrop-blur-md" style={{ paddingBottom: 'max(0px, env(safe-area-inset-bottom))' }}>
       <div className="flex items-center justify-around max-w-2xl mx-auto">
-        <NavItem icon="🏠" label="Home" active />
-        <NavItem icon="🔍" label="Explore" />
-        <NavItem icon="📝" label="Post" />
-        <NavItem icon="💬" label="Messages" />
-        <NavItem icon="👤" label="Profile" />
+        <NavItem label="Home" active />
+        <NavItem label="Explore" />
+        <NavItem label="Post" />
+        <NavItem label="Messages" />
+        <NavItem label="Profile" />
       </div>
     </nav>
   );
 }
 
-function NavItem({ icon, label, active }: { icon: string; label: string; active?: boolean }) {
+function NavItem({ label, active }: { label: string; active?: boolean }) {
   return (
     <button
       className={`flex-1 py-3 px-2 flex flex-col items-center gap-1 text-xs font-semibold transition ${
         active ? "text-primary" : "text-muted-foreground hover:text-foreground"
       }`}
     >
-      <span className="text-xl">{icon}</span>
+      <div className="w-5 h-5 rounded-full" />
       <span className="hidden sm:inline">{label}</span>
     </button>
   );

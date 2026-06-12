@@ -1,10 +1,11 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
-import { Eye, EyeOff, Zap } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign In — TORQUE" }] }),
@@ -65,19 +66,16 @@ function LoginPage() {
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 text-foreground flex flex-col">
       <style>{`html { padding-top: max(0px, env(safe-area-inset-top)); padding-bottom: max(0px, env(safe-area-inset-bottom)); padding-left: max(0px, env(safe-area-inset-left)); padding-right: max(0px, env(safe-area-inset-right)); }`}</style>
       
-      {/* Hero Section - iPhone Optimized */}
       <div className="flex-1 flex flex-col justify-center px-6 pt-8 pb-6 sm:pt-0">
         <div className="max-w-sm mx-auto w-full">
-          {/* Logo & Brand */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/70 mb-4">
-              <Zap className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/70 mb-6">
+              <span className="text-4xl font-black">T</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight">TORQUE</h1>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mt-2">Automotive Social Network</p>
+            <h1 className="text-4xl font-black tracking-tight">TORQUE</h1>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3">Premium Automotive Network</p>
           </div>
 
-          {/* Tab Switcher */}
           <div className="flex gap-3 mb-6 bg-white/5 rounded-xl p-1 backdrop-blur-sm border border-white/10">
             <button
               onClick={() => { setMode("signin"); setPassword(""); }}
@@ -101,7 +99,6 @@ function LoginPage() {
             </button>
           </div>
 
-          {/* Google Auth */}
           <button
             onClick={google}
             disabled={busy}
@@ -116,7 +113,6 @@ function LoginPage() {
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
-          {/* Form */}
           <form onSubmit={submit} className="space-y-3 mb-4">
             {mode === "signup" && (
               <input
@@ -179,7 +175,6 @@ function LoginPage() {
             </button>
           </form>
 
-          {/* Divider */}
           <div className="text-center text-xs text-muted-foreground mb-3">
             {mode === "signin" ? "New to TORQUE?" : "Already have an account?"}{" "}
             <button
@@ -190,15 +185,8 @@ function LoginPage() {
             </button>
           </div>
 
-          {/* Terms & Privacy */}
           <div className="text-center text-xs text-muted-foreground/60">
-            By continuing, you agree to our <br />
-            <a href="#" className="hover:text-muted-foreground transition">
-              Terms
-            </a>
-            {" "}& <a href="#" className="hover:text-muted-foreground transition">
-              Privacy Policy
-            </a>
+            By continuing, you agree to our Terms & Privacy Policy
           </div>
         </div>
       </div>
