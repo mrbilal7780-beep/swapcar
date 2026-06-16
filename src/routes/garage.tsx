@@ -1,24 +1,31 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useAuth } from "@/lib/auth";
+import { useAuth, RequireAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, ArrowLeft, TrendingUp } from "lucide-react";
+import { Plus, ArrowLeft, TrendingUp, Car } from "lucide-react";
 import { useState } from "react";
+import { BottomNav } from "@/components/BottomNav";
 
 export const Route = createFileRoute("/garage")({
   head: () => ({ meta: [{ title: "Garage — TORQUE" }] }),
   component: () => (
-    <RequireAuthWrapper>
+    <RequireAuth>
       <GaragePage />
-    </RequireAuthWrapper>
+    </RequireAuth>
   ),
 });
 
-function RequireAuthWrapper({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
-  return <>{children}</>;
+// Interface mise à jour avec owner_id au lieu de user_id
+interface Vehicle {
+  id: string;
+  owner_id: string; // Correction ici
+  brand: string;
+  model: string;
+  year: number;
+  mileage: number;
+  fuel: string;
+  price?: number;
+  created_at: string;
 }
 
 function GaragePage() {
@@ -28,13 +35,17 @@ function GaragePage() {
   const { data: vehicles = [] } = useQuery({
     queryKey: ["garage", user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data } = await supabase
         .from("vehicles")
         .select("*")
-        .eq("user_id", user?.id)
+        .eq("owner_id", user.id) // Correction ici : owner_id au lieu de user_id
         .order("created_at", { ascending: false });
-      return data ?? [];
+      
+      return (data as Vehicle[]) ?? [];
     },
+    enabled: !!user?.id,
   });
 
   if (selectedVehicleId) {
@@ -76,7 +87,7 @@ function GaragePage() {
       <div className="max-w-2xl mx-auto px-4">
         {vehicles.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-5xl mb-4">Car</div>
+            <Car className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground mb-6">No vehicles yet</p>
             <Link
               to="/add-vehicle"
@@ -87,15 +98,15 @@ function GaragePage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {vehicles.map((vehicle: any) => (
+            {vehicles.map((vehicle: Vehicle) => (
               <button
                 key={vehicle.id}
                 onClick={() => setSelectedVehicleId(vehicle.id)}
                 className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/50 transition text-left"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex-shrink-0 flex items-center justify-center text-2xl">
-                    T
+                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex-shrink-0 flex items-center justify-center">
+                    <Car className="w-8 h-8 text-primary-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold">{vehicle.brand} {vehicle.model}</h3>
@@ -114,13 +125,13 @@ function GaragePage() {
         )}
       </div>
 
-      <MobileNav activeTab="garage" />
+      <BottomNav />
     </div>
   );
 }
 
 interface VehiclePassportProps {
-  vehicle: any;
+  vehicle: Vehicle;
   onBack: () => void;
 }
 
@@ -142,8 +153,8 @@ function VehiclePassport({ vehicle, onBack }: VehiclePassportProps) {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 pt-6">
-        <div className="w-full h-48 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-6xl mb-6">
-          T
+        <div className="w-full h-48 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center mb-6">
+          <Car className="w-16 h-16 text-primary-foreground" />
         </div>
       </div>
 
@@ -236,7 +247,7 @@ function VehiclePassport({ vehicle, onBack }: VehiclePassportProps) {
         </button>
       </div>
 
-      <MobileNav activeTab="garage" />
+      <BottomNav />
     </div>
   );
 }
@@ -302,36 +313,4 @@ function HistoryItem({ date, title, type }: { date: string; title: string; type:
       </div>
     </div>
   );
-}
-
-function MobileNav({ activeTab }: { activeTab: string }) {
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 border-t border-white/5 bg-background/80 backdrop-blur-md" style={{ paddingBottom: 'max(0px, env(safe-area-inset-bottom))' }}>
-      <div className="flex items-center justify-around max-w-2xl mx-auto">
-        <NavItem label="Home" active={activeTab === "home"} to="/feed" />
-        <NavItem label="Explore" active={activeTab === "explore"} to="/explore" />
-        <NavItem label="Post" active={activeTab === "post"} to="/post" />
-        <NavItem label="Messages" active={activeTab === "messages"} to="/messages" />
-        <NavItem label="Garage" active={activeTab === "garage"} to="/garage" />
-      </div>
-    </nav>
-  );
-}
-
-function NavItem({ label, active, to }: { label: string; active: boolean; to: string }) {
-  return (
-    <Link
-      to={to}
-      className={`flex-1 py-3 px-2 flex flex-col items-center gap-1 text-xs font-semibold transition ${
-        active ? "text-primary" : "text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      <div className="w-5 h-5 rounded-full" />
-      <span className="hidden sm:inline">{label}</span>
-    </Link>
-  );
-}
-
-function Navigate({ to }: { to: string }) {
-  return <div>Redirecting...</div>;
 }

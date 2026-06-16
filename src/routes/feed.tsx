@@ -1,9 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth } from "@/lib/auth";
 import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal } from "lucide-react";
 import { useRef, useEffect, useState } from "react";
+import { BottomNav } from "@/components/BottomNav";
 
 export const Route = createFileRoute("/feed")({
   head: () => ({ meta: [{ title: "Feed — TORQUE" }] }),
@@ -16,8 +17,8 @@ export const Route = createFileRoute("/feed")({
 
 interface Post {
   id: string;
-  user_id: string;
-  content: string;
+  author_id: string;
+  content: string | null; // Correction : autoriser null car la base de données peut renvoyer null
   image_url?: string;
   created_at: string;
   likes_count: number;
@@ -45,7 +46,7 @@ function FeedPage() {
         .select("*")
         .order("created_at", { ascending: false })
         .range(pageParam, pageParam + 9);
-      return posts ?? [];
+      return (posts as Post[]) ?? []; // Cast explicite pour correspondre à l'interface
     },
     getNextPageParam: (lastPage, allPages) => {
       return lastPage.length === 10 ? allPages.length * 10 : undefined;
@@ -106,9 +107,12 @@ function FeedPage() {
             <div>
               <div className="text-4xl mb-3">No posts</div>
               <p className="text-muted-foreground mb-4">Follow accounts to get started</p>
-              <button className="px-6 py-2 bg-primary text-primary-foreground rounded-full font-semibold text-sm hover:bg-primary/90 transition">
+              <Link
+                to="/explore"
+                className="inline-block px-6 py-2 bg-primary text-primary-foreground rounded-full font-semibold text-sm hover:bg-primary/90 transition"
+              >
                 Explore
-              </button>
+              </Link>
             </div>
           </div>
         ) : (
@@ -132,7 +136,7 @@ function FeedPage() {
         )}
       </div>
 
-      <MobileBottomNav />
+      <BottomNav />
     </div>
   );
 }
@@ -162,7 +166,8 @@ function PostCard({ post, liked, saved, onLike, onSave }: PostCardProps) {
       </div>
 
       <div className="px-4">
-        <p className="text-sm leading-relaxed text-foreground mb-3">{post.content}</p>
+        {/* Correction : Affichage sécurisé du contenu (même s'il est null) */}
+        <p className="text-sm leading-relaxed text-foreground mb-3">{post.content ?? ""}</p>
         {post.image_url && (
           <img
             src={post.image_url}
@@ -208,33 +213,6 @@ function ActionButton({
       }`}
     >
       <Icon className="w-4 h-4" />
-      <span className="hidden sm:inline">{label}</span>
-    </button>
-  );
-}
-
-function MobileBottomNav() {
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 border-t border-white/5 bg-background/80 backdrop-blur-md" style={{ paddingBottom: 'max(0px, env(safe-area-inset-bottom))' }}>
-      <div className="flex items-center justify-around max-w-2xl mx-auto">
-        <NavItem label="Home" active />
-        <NavItem label="Explore" />
-        <NavItem label="Post" />
-        <NavItem label="Messages" />
-        <NavItem label="Profile" />
-      </div>
-    </nav>
-  );
-}
-
-function NavItem({ label, active }: { label: string; active?: boolean }) {
-  return (
-    <button
-      className={`flex-1 py-3 px-2 flex flex-col items-center gap-1 text-xs font-semibold transition ${
-        active ? "text-primary" : "text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      <div className="w-5 h-5 rounded-full" />
       <span className="hidden sm:inline">{label}</span>
     </button>
   );
