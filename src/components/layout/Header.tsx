@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { NotificationsBell } from "@/components/social/NotificationsBell";
+import { Plus, User } from "lucide-react";
+import { BottomNav } from "@/components/BottomNav";
 
 export function Header() {
   const { user, signOut } = useAuth();
@@ -10,7 +12,7 @@ export function Header() {
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 glow" />
           <span className="text-base md:text-lg font-bold tracking-tight">
-            SWAPCARS <span className="text-gradient">AI</span>
+            TORQUE
           </span>
         </Link>
         <div className="hidden md:flex gap-8 text-sm text-muted-foreground">
@@ -35,10 +37,10 @@ export function Header() {
               </Link>
               <Link
                 to="/profile"
-                className="md:hidden w-9 h-9 rounded-full bg-secondary border border-white/10 flex items-center justify-center text-sm"
+                className="md:hidden w-9 h-9 rounded-full bg-secondary border border-white/10 flex items-center justify-center"
                 aria-label="Profil"
               >
-                👤
+                <User className="w-4 h-4" />
               </Link>
               <button
                 onClick={signOut}
@@ -61,47 +63,12 @@ export function Header() {
   );
 }
 
-export function MobileTabBar() {
-  const { user } = useAuth();
-  const tabs: { to: string; icon: string; label: string; primary?: boolean }[] = [
-    { to: "/", icon: "🏠", label: "Accueil" },
-    { to: "/explore", icon: "🚗", label: "Explorer" },
-    { to: "/add-vehicle", icon: "➕", label: "Déposer", primary: true },
-    { to: "/feed", icon: "📸", label: "Feed" },
-    { to: user ? "/profile" : "/login", icon: user ? "👤" : "🔐", label: user ? "Profil" : "Connexion" },
-  ];
-  return (
-    <nav
-      className="md:hidden fixed bottom-0 inset-x-0 z-50 glass border-t border-white/10 pb-[env(safe-area-inset-bottom)]"
-      aria-label="Navigation principale"
-    >
-      <ul className="flex items-center justify-around px-2 py-1.5">
-        {tabs.map((t) => (
-          <li key={t.to} className="flex-1">
-            <Link
-              to={t.to as string}
-              className="flex flex-col items-center gap-0.5 py-1.5 text-[10px] text-muted-foreground transition"
-              activeOptions={{ exact: t.to === "/" }}
-              activeProps={{ className: "flex flex-col items-center gap-0.5 py-1.5 text-[10px] text-primary" }}
-            >
-              <span className={t.primary ? "w-10 h-10 -mt-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg glow shadow-lg" : "text-xl leading-none"}>
-                {t.icon}
-              </span>
-              <span className={t.primary ? "mt-0.5" : ""}>{t.label}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  );
-}
-
 export function Footer() {
   return (
     <footer className="hidden md:block border-t border-white/10 py-10 px-6 md:px-8">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
         <div className="font-semibold tracking-tight">
-          SWAPCARS <span className="text-gradient">AI</span> © 2026
+          TORQUE © 2026
         </div>
         <div className="text-muted-foreground">Le futur de l'échange automobile.</div>
       </div>
@@ -115,7 +82,7 @@ export function PageShell({ children }: { children: React.ReactNode }) {
       <Header />
       <main className="pt-20 md:pt-24 pb-24 md:pb-0">{children}</main>
       <Footer />
-      <MobileTabBar />
+      <BottomNav />
     </div>
   );
 }
