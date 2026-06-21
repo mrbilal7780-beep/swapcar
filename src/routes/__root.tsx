@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../lib/auth";
 import { Toaster } from "../components/ui/sonner";
+import { SplashScreen } from "../components/SplashScreen";
 
 function NotFoundComponent() {
   return (
@@ -100,7 +101,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" },
-      { rel: "icon", href: "/torque-icon.svg" },
+      { rel: "icon", href: "/favicon-32.png" },
       { rel: "apple-touch-icon", href: "/torque-apple-touch-icon.png" },
       { rel: "manifest", href: "/manifest.json" },
     ],
@@ -146,6 +147,7 @@ function RootComponent() {
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
         <Toaster />
+        <SplashScreen />
       </AuthProvider>
     </QueryClientProvider>
   );
