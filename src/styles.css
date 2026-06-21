@@ -1,3 +1,7 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
 html {
   touch-action: pan-x pan-y;
   -webkit-text-size-adjust: 100%;
@@ -12,9 +16,6 @@ select,
 textarea {
   font-size: 16px;
 }
-@import "tailwindcss" source(none);
-@source "../src";
-@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -77,7 +78,7 @@ textarea {
 
 :root {
   --radius: 1rem;
-  /* Carswap AI — Dark Premium Automotive */
+  /* TORQUE — Dark Premium Automotive */
   --background: oklch(0.08 0.005 260);
   --foreground: oklch(0.98 0 0);
   --card: oklch(0.12 0.008 260);

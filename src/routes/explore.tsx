@@ -7,9 +7,9 @@ import { PageShell } from "@/components/layout/Header";
 export const Route = createFileRoute("/explore")({
   head: () => ({
     meta: [
-      { title: "Explorer les véhicules — Carswap AI" },
+      { title: "Explorer les véhicules — TORQUE" },
       { name: "description", content: "Parcourez les véhicules disponibles à l'échange et filtrez par marque, budget et carburant." },
-      { property: "og:title", content: "Explorer — Carswap AI" },
+      { property: "og:title", content: "Explorer — TORQUE" },
       { property: "og:description", content: "Trouvez le véhicule parfait à échanger." },
     ],
   }),
@@ -56,6 +56,12 @@ function Explore() {
               Explorer <span className="text-gradient">les véhicules</span>
             </h1>
             <p className="text-muted-foreground mt-2">{filtered.length} véhicules disponibles à l'échange</p>
+            <Link
+              to="/search-users"
+              className="inline-flex items-center gap-2 mt-3 text-sm text-primary hover:underline"
+            >
+              Rechercher des membres →
+            </Link>
           </div>
         </div>
 
