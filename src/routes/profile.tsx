@@ -3,22 +3,27 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
+import { Settings, Grid3x3, Clapperboard, Car, ShieldCheck } from "lucide-react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
-      { title: "Mon profil — Carswap AI" },
-      { name: "description", content: "Gérez votre profil, vos véhicules et votre score de confiance." },
-      { property: "og:title", content: "Mon profil — Carswap AI" },
-      { property: "og:description", content: "Votre tableau de bord Carswap AI." },
+      { title: "Mon profil — TORQUE" },
+      { name: "description", content: "Gérez votre profil, vos publications et votre garage." },
+      { property: "og:title", content: "Mon profil — TORQUE" },
+      { property: "og:description", content: "Votre tableau de bord TORQUE." },
     ],
   }),
   component: () => <RequireAuth><Profile /></RequireAuth>,
 });
 
+type Tab = "posts" | "reels" | "garage";
+
 function Profile() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const userId = user!.id;
+  const [tab, setTab] = useState<Tab>("posts");
 
   const { data: profile } = useQuery({
     queryKey: ["profile", userId],
@@ -41,112 +46,212 @@ function Profile() {
     },
   });
 
-  const { data: matches = [] } = useQuery({
-    queryKey: ["matches-count", userId],
+  const { data: myPosts = [] } = useQuery({
+    queryKey: ["my-posts", userId],
     queryFn: async () => {
-      const { data } = await supabase.from("matches").select("id");
+      const { data, error } = await supabase
+        .from("posts")
+        .select("*")
+        .eq("author_id", userId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
       return data ?? [];
     },
   });
 
-  const { data: likes = [] } = useQuery({
-    queryKey: ["my-likes-count", userId],
-    queryFn: async () => {
-      const { data } = await supabase.from("vehicle_likes").select("id").eq("liker_user_id", userId);
-      return data ?? [];
-    },
-  });
+  const photos = myPosts.filter((p) => p.media_type !== "video");
+  const reels = myPosts.filter((p) => p.media_type === "video");
 
   const initials = (profile?.display_name ?? user!.email ?? "?").slice(0, 2).toUpperCase();
+  const username = profile?.username ?? user!.email?.split("@")[0];
 
   return (
     <PageShell>
-      <section className="max-w-5xl mx-auto px-6 md:px-8 py-8">
-        <div className="glass rounded-3xl p-8 md:p-10 flex flex-col md:flex-row items-center md:items-end gap-6">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/40 glow flex items-center justify-center text-3xl font-black">{initials}</div>
-          <div className="flex-1 text-center md:text-left">
-            <h1 className="text-3xl font-black tracking-tight">{profile?.display_name ?? user!.email}</h1>
-            <p className="text-muted-foreground mt-1">{profile?.city ?? "Profil Carswap AI"}</p>
-            <div className="flex flex-wrap gap-2 mt-3 justify-center md:justify-start">
-              <Badge>✓ Email</Badge>
-              {profile?.verified && <Badge>✓ Identité</Badge>}
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-xs uppercase tracking-widest text-muted-foreground">Score de confiance</div>
-            <div className="text-5xl font-black text-gradient mt-1">{profile?.trust_score ?? 50}</div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-          <Stat label="Véhicules" v={String(myCars.length)} />
-          <Stat label="Likes envoyés" v={String(likes.length)} />
-          <Stat label="Matches" v={String(matches.length)} />
-          <Stat label="Score" v={String(profile?.trust_score ?? 50)} />
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4 mt-8">
-          <Link to="/matches" className="glass rounded-2xl p-6 hover:bg-white/5 transition flex items-center justify-between">
-            <div>
-              <div className="text-xs uppercase tracking-widest text-primary">Découvrir</div>
-              <div className="text-lg font-bold mt-1">Mes matches IA</div>
-            </div>
-            <span className="text-2xl">→</span>
-          </Link>
-          <Link to="/chat" className="glass rounded-2xl p-6 hover:bg-white/5 transition flex items-center justify-between">
-            <div>
-              <div className="text-xs uppercase tracking-widest text-primary">Discuter</div>
-              <div className="text-lg font-bold mt-1">Mes messages</div>
-            </div>
-            <span className="text-2xl">→</span>
+      <div className="max-w-2xl mx-auto">
+        {/* Top bar: username + settings */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <h1 className="text-lg font-bold">{username}</h1>
+          <Link
+            to="/settings"
+            className="p-2 -mr-2 hover:bg-white/5 rounded-lg transition"
+            aria-label="Paramètres"
+          >
+            <Settings className="w-6 h-6" />
           </Link>
         </div>
 
-        <div className="mt-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Mes véhicules</h2>
-            <Link to="/add-vehicle" className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-full font-semibold glow">
-              + Ajouter
-            </Link>
-          </div>
-          {myCars.length === 0 ? (
-            <div className="glass rounded-3xl p-12 text-center text-muted-foreground">
-              Aucun véhicule pour le moment.
-            </div>
+        {/* Avatar + stats */}
+        <div className="px-4 flex items-center gap-6 mb-4">
+          {profile?.avatar_url ? (
+            <img
+              src={profile.avatar_url}
+              alt={username}
+              className="w-20 h-20 rounded-full object-cover border border-white/10 flex-shrink-0"
+            />
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {myCars.map((c) => (
-                <Link key={c.id} to="/vehicle/$id" params={{ id: c.id }} className="glass rounded-3xl overflow-hidden hover:scale-[1.02] transition-transform">
-                  {c.photos?.[0] ? (
-                    <img src={c.photos[0]} alt={c.brand} className="w-full aspect-[16/10] object-cover" />
-                  ) : (
-                    <div className="w-full aspect-[16/10] bg-secondary flex items-center justify-center text-4xl">🚗</div>
-                  )}
-                  <div className="p-5">
-                    <div className="font-bold">{c.brand} {c.model}</div>
-                    <div className="text-sm text-muted-foreground mt-1">{c.year} • {Number(c.price).toLocaleString("fr-FR")} €</div>
-                    {(c as any).ai_body_score != null && (
-                      <div className="text-xs text-primary mt-2">Score IA carrosserie : {(c as any).ai_body_score}/100</div>
-                    )}
-                  </div>
-                </Link>
-              ))}
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center text-2xl font-black flex-shrink-0">
+              {initials}
             </div>
           )}
+          <div className="flex-1 grid grid-cols-3 text-center">
+            <StatBlock value={profile?.posts_count ?? myPosts.length} label="Posts" />
+            <StatBlock value={profile?.followers_count ?? 0} label="Abonnés" />
+            <StatBlock value={profile?.following_count ?? 0} label="Abonnements" />
+          </div>
         </div>
-      </section>
+
+        {/* Bio */}
+        <div className="px-4 mb-3">
+          <p className="font-semibold text-sm">{profile?.display_name ?? user!.email}</p>
+          {profile?.bio && <p className="text-sm text-foreground/90 whitespace-pre-line mt-0.5">{profile.bio}</p>}
+          {profile?.city && <p className="text-sm text-muted-foreground mt-0.5">{profile.city}</p>}
+          {profile?.verified && (
+            <span className="inline-flex items-center gap-1 text-xs text-primary mt-2">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Identité vérifiée
+            </span>
+          )}
+        </div>
+
+        {/* Edit profile button */}
+        <div className="px-4 mb-4">
+          <Link
+            to="/settings"
+            className="block w-full text-center py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold hover:bg-white/10 transition"
+          >
+            Modifier le profil
+          </Link>
+        </div>
+
+        {/* Tabs: Posts / Reels / Garage */}
+        <div className="grid grid-cols-3 border-t border-white/10">
+          <TabButton active={tab === "posts"} onClick={() => setTab("posts")} icon={Grid3x3} />
+          <TabButton active={tab === "reels"} onClick={() => setTab("reels")} icon={Clapperboard} />
+          <TabButton active={tab === "garage"} onClick={() => setTab("garage")} icon={Car} />
+        </div>
+
+        {/* Tab content */}
+        {tab === "posts" && (
+          photos.length === 0 ? (
+            <EmptyState text="Aucune publication" />
+          ) : (
+            <div className="grid grid-cols-3 gap-[2px]">
+              {photos.map((p) => (
+                <div key={p.id} className="aspect-square bg-white/5">
+                  {p.media_urls?.[0] && (
+                    <img src={p.media_urls[0]} alt="" className="w-full h-full object-cover" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )
+        )}
+
+        {tab === "reels" && (
+          reels.length === 0 ? (
+            <EmptyState text="Aucun reel" />
+          ) : (
+            <div className="grid grid-cols-3 gap-[2px]">
+              {reels.map((p) => (
+                <div key={p.id} className="aspect-[9/16] bg-white/5">
+                  {p.media_urls?.[0] && (
+                    <video src={p.media_urls[0]} className="w-full h-full object-cover" muted />
+                  )}
+                </div>
+              ))}
+            </div>
+          )
+        )}
+
+        {tab === "garage" && (
+          <div className="px-4 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold">Mon garage</h2>
+              <Link
+                to="/add-vehicle"
+                className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-full font-semibold"
+              >
+                + Ajouter
+              </Link>
+            </div>
+            {myCars.length === 0 ? (
+              <EmptyState text="Aucun véhicule pour le moment" />
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {myCars.map((c) => (
+                  <Link
+                    key={c.id}
+                    to="/vehicle/$id"
+                    params={{ id: c.id }}
+                    className="rounded-2xl overflow-hidden bg-white/5 border border-white/10 hover:border-primary/50 transition"
+                  >
+                    {c.photos?.[0] ? (
+                      <img src={c.photos[0]} alt={c.brand} className="w-full aspect-[4/3] object-cover" />
+                    ) : (
+                      <div className="w-full aspect-[4/3] bg-secondary flex items-center justify-center">
+                        <Car className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="p-3">
+                      <div className="font-bold text-sm">{c.brand} {c.model}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {c.year} · {Number(c.price).toLocaleString("fr-FR")} €
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="px-4 py-8 text-center">
+          <button
+            onClick={signOut}
+            className="text-sm text-muted-foreground hover:text-foreground transition"
+          >
+            Déconnexion
+          </button>
+        </div>
+      </div>
     </PageShell>
   );
 }
 
-function Badge({ children }: { children: React.ReactNode }) {
-  return <span className="text-xs glass px-3 py-1 rounded-full text-primary">{children}</span>;
-}
-function Stat({ label, v }: { label: string; v: string }) {
+function StatBlock({ value, label }: { value: number; label: string }) {
   return (
-    <div className="glass rounded-2xl p-5">
-      <div className="text-xs uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className="text-2xl font-bold mt-2">{v}</div>
+    <div>
+      <div className="text-lg font-bold">{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  icon: Icon,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center justify-center py-3 border-t-2 transition ${
+        active ? "border-foreground text-foreground" : "border-transparent text-muted-foreground"
+      }`}
+    >
+      <Icon className="w-6 h-6" />
+    </button>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="py-16 text-center text-muted-foreground text-sm">
+      {text}
     </div>
   );
 }
