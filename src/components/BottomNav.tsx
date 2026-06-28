@@ -4,7 +4,7 @@ import { Home, Compass, PlusSquare, MessageCircle, User } from "lucide-react";
 const tabs = [
   { to: "/feed", icon: Home, label: "Home" },
   { to: "/explore", icon: Compass, label: "Explore" },
-  { to: "/add-vehicle", icon: PlusSquare, label: "Post" },
+  { to: "/create-post", icon: PlusSquare, label: "Post" },
   { to: "/chat", icon: MessageCircle, label: "Messages" },
   { to: "/profile", icon: User, label: "Profile" },
 ];
@@ -19,7 +19,7 @@ export function BottomNav() {
         {tabs.map(({ to, icon: Icon, label }) => (
           <Link
             key={to}
-            to={to}
+            to={to as any}
             className="flex-1 py-3 px-2 flex flex-col items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition"
             activeProps={{
               className:
