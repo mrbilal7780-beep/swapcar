@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/settings" as any)({
+export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Paramètres — TORQUE" }] }),
   component: () => <RequireAuth><Settings /></RequireAuth>,
 });

@@ -7,7 +7,7 @@ import { PageShell } from "@/components/layout/Header";
 import { Search, ArrowLeft, UserPlus, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/search-users" as any)({
+export const Route = createFileRoute("/search-users")({
   head: () => ({ meta: [{ title: "Rechercher des membres — TORQUE" }] }),
   component: () => <RequireAuth><SearchUsers /></RequireAuth>,
 });
