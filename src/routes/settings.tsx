@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/settings")({
+export const Route = createFileRoute("/settings" as any)({
   head: () => ({ meta: [{ title: "Paramètres — TORQUE" }] }),
   component: () => <RequireAuth><Settings /></RequireAuth>,
 });
@@ -21,7 +21,11 @@ function Settings() {
   const { data: profile } = useQuery({
     queryKey: ["profile", userId],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle();
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
       return data;
     },
   });
@@ -61,22 +65,42 @@ function Settings() {
       toast.error("Erreur lors de l'enregistrement");
       return;
     }
-    toast.success("Profil mis à jour");
+    toast.success("Profil mis à jour !");
     queryClient.invalidateQueries({ queryKey: ["profile", userId] });
-    navigate({ to: "/profile" });
+    navigate({ to: "/profile" } as any);
   };
 
   return (
     <PageShell>
       <div className="max-w-2xl mx-auto px-4">
         <div className="flex items-center gap-3 py-3">
-          <button onClick={() => navigate({ to: "/profile" })} className="p-2 -ml-2 hover:bg-white/5 rounded-lg transition">
+          <button
+            onClick={() => navigate({ to: "/profile" } as any)}
+            className="p-2 -ml-2 hover:bg-white/5 rounded-lg transition"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-lg font-bold">Modifier le profil</h1>
         </div>
 
         <div className="space-y-5 py-4">
+
+          {avatarUrl ? (
+            <div className="flex justify-center mb-2">
+              <img
+                src={avatarUrl}
+                alt="Avatar"
+                className="w-24 h-24 rounded-full object-cover border-2 border-primary/30"
+              />
+            </div>
+          ) : (
+            <div className="flex justify-center mb-2">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center text-3xl font-black">
+                {(displayName || user!.email || "?").slice(0, 2).toUpperCase()}
+              </div>
+            </div>
+          )}
+
           <Field label="Photo de profil (URL)">
             <input
               type="text"
@@ -139,6 +163,7 @@ function Settings() {
               Déconnexion
             </button>
           </div>
+
         </div>
       </div>
     </PageShell>

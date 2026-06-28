@@ -7,7 +7,7 @@ import { PageShell } from "@/components/layout/Header";
 import { Search, ArrowLeft, UserPlus, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/search-users")({
+export const Route = createFileRoute("/search-users" as any)({
   head: () => ({ meta: [{ title: "Rechercher des membres — TORQUE" }] }),
   component: () => <RequireAuth><SearchUsers /></RequireAuth>,
 });
@@ -58,6 +58,7 @@ function SearchUsers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-following", userId] });
+      toast.success("Abonné !");
     },
     onError: () => toast.error("Impossible de s'abonner"),
   });
@@ -73,6 +74,7 @@ function SearchUsers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-following", userId] });
+      toast.success("Désabonné");
     },
     onError: () => toast.error("Impossible de se désabonner"),
   });
@@ -118,9 +120,17 @@ function SearchUsers() {
             const isFollowing = followingSet.has(p.user_id);
             return (
               <div key={p.user_id} className="flex items-center gap-3 px-1 py-2.5">
-                <Link to="/u/$username" params={{ username: p.username ?? p.user_id }} className="flex items-center gap-3 flex-1 min-w-0">
+                <Link
+                  to="/u/$username"
+                  params={{ username: p.username ?? p.user_id }}
+                  className="flex items-center gap-3 flex-1 min-w-0"
+                >
                   {p.avatar_url ? (
-                    <img src={p.avatar_url} alt="" className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
+                    <img
+                      src={p.avatar_url}
+                      alt=""
+                      className="w-11 h-11 rounded-full object-cover flex-shrink-0"
+                    />
                   ) : (
                     <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center font-bold text-sm flex-shrink-0">
                       {(p.display_name ?? p.username ?? "?").slice(0, 2).toUpperCase()}

@@ -61,18 +61,18 @@ function Profile() {
 
   const photos = myPosts.filter((p) => p.media_type !== "video");
   const reels = myPosts.filter((p) => p.media_type === "video");
-
   const initials = (profile?.display_name ?? user!.email ?? "?").slice(0, 2).toUpperCase();
   const username = profile?.username ?? user!.email?.split("@")[0];
 
   return (
     <PageShell>
       <div className="max-w-2xl mx-auto">
-        {/* Top bar: username + settings */}
+
+        {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3">
           <h1 className="text-lg font-bold">{username}</h1>
           <Link
-            to="/settings"
+            to={"/settings" as any}
             className="p-2 -mr-2 hover:bg-white/5 rounded-lg transition"
             aria-label="Paramètres"
           >
@@ -103,8 +103,12 @@ function Profile() {
         {/* Bio */}
         <div className="px-4 mb-3">
           <p className="font-semibold text-sm">{profile?.display_name ?? user!.email}</p>
-          {profile?.bio && <p className="text-sm text-foreground/90 whitespace-pre-line mt-0.5">{profile.bio}</p>}
-          {profile?.city && <p className="text-sm text-muted-foreground mt-0.5">{profile.city}</p>}
+          {profile?.bio && (
+            <p className="text-sm text-foreground/90 whitespace-pre-line mt-0.5">{profile.bio}</p>
+          )}
+          {profile?.city && (
+            <p className="text-sm text-muted-foreground mt-0.5">{profile.city}</p>
+          )}
           {profile?.verified && (
             <span className="inline-flex items-center gap-1 text-xs text-primary mt-2">
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -113,24 +117,24 @@ function Profile() {
           )}
         </div>
 
-        {/* Edit profile button */}
+        {/* Edit button */}
         <div className="px-4 mb-4">
           <Link
-            to="/settings"
+            to={"/settings" as any}
             className="block w-full text-center py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold hover:bg-white/10 transition"
           >
             Modifier le profil
           </Link>
         </div>
 
-        {/* Tabs: Posts / Reels / Garage */}
+        {/* Tabs */}
         <div className="grid grid-cols-3 border-t border-white/10">
           <TabButton active={tab === "posts"} onClick={() => setTab("posts")} icon={Grid3x3} />
           <TabButton active={tab === "reels"} onClick={() => setTab("reels")} icon={Clapperboard} />
           <TabButton active={tab === "garage"} onClick={() => setTab("garage")} icon={Car} />
         </div>
 
-        {/* Tab content */}
+        {/* Posts */}
         {tab === "posts" && (
           photos.length === 0 ? (
             <EmptyState text="Aucune publication" />
@@ -147,6 +151,7 @@ function Profile() {
           )
         )}
 
+        {/* Reels */}
         {tab === "reels" && (
           reels.length === 0 ? (
             <EmptyState text="Aucun reel" />
@@ -163,6 +168,7 @@ function Profile() {
           )
         )}
 
+        {/* Garage */}
         {tab === "garage" && (
           <div className="px-4 py-4">
             <div className="flex items-center justify-between mb-4">
@@ -205,6 +211,7 @@ function Profile() {
           </div>
         )}
 
+        {/* Déconnexion */}
         <div className="px-4 py-8 text-center">
           <button
             onClick={signOut}

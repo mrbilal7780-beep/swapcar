@@ -57,7 +57,7 @@ function Explore() {
             </h1>
             <p className="text-muted-foreground mt-2">{filtered.length} véhicules disponibles à l'échange</p>
             <Link
-              to="/search-users"
+              to={"/search-users" as any}
               className="inline-flex items-center gap-2 mt-3 text-sm text-primary hover:underline"
             >
               Rechercher des membres →
