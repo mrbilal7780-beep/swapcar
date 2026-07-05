@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { Heart, MessageCircle, Share2, Trash2, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
 
 type PostAuthor = {
   user_id: string;
@@ -23,18 +25,22 @@ export type FeedPost = {
   author?: PostAuthor | null;
 };
 
-export function PostCard({ post }: { post: FeedPost }) {
+export function PostCard({ post, onDeleted }: { post: FeedPost; onDeleted?: () => void }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [showMenu, setShowMenu] = useState(false);
 
+  const isOwner = user?.id === post.author_id;
+
+  // Like status
   const { data: liked } = useQuery({
     queryKey: ["post-liked", post.id, user?.id],
     enabled: !!user,
     queryFn: async () => {
       const { data } = await supabase
-        .from("post_likes")
+        .from("likes")
         .select("id")
         .eq("post_id", post.id)
         .eq("user_id", user!.id)
@@ -47,99 +53,146 @@ export function PostCard({ post }: { post: FeedPost }) {
     mutationFn: async () => {
       if (!user) throw new Error("Connexion requise");
       if (liked) {
-        await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
+        await supabase.from("likes").delete().eq("post_id", post.id).eq("user_id", user.id);
       } else {
-        await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id });
+        await supabase.from("likes").insert({ post_id: post.id, user_id: user.id });
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["post-liked", post.id] });
       qc.invalidateQueries({ queryKey: ["feed"] });
+      qc.invalidateQueries({ queryKey: ["my-posts"] });
     },
+  });
+
+  // Delete post
+  const deletePost = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("posts").delete().eq("id", post.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Publication supprimée");
+      qc.invalidateQueries({ queryKey: ["feed"] });
+      qc.invalidateQueries({ queryKey: ["my-posts"] });
+      onDeleted?.();
+    },
+    onError: () => toast.error("Erreur lors de la suppression"),
   });
 
   const initials = (post.author?.display_name ?? post.author?.username ?? "?").slice(0, 2).toUpperCase();
   const handle = post.author?.username ?? post.author_id.slice(0, 8);
 
   return (
-    <article className="glass rounded-3xl overflow-hidden">
-      <header className="flex items-center gap-3 p-4">
-        <Link to="/u/$username" params={{ username: handle }} className="flex items-center gap-3 flex-1 group">
+    <article className="bg-background border-b border-white/5">
+      {/* Header */}
+      <header className="flex items-center gap-3 px-4 py-3">
+        <Link to="/u/$username" params={{ username: handle }} className="flex items-center gap-3 flex-1">
           {post.author?.avatar_url ? (
-            <img src={post.author.avatar_url} alt="" className="w-11 h-11 rounded-full object-cover" />
+            <img src={post.author.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
           ) : (
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-primary/40 glow flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center font-bold text-sm flex-shrink-0">
               {initials}
             </div>
           )}
           <div>
-            <div className="font-semibold group-hover:text-primary transition">
-              {post.author?.display_name ?? handle}
-            </div>
+            <div className="font-semibold text-sm">{post.author?.display_name ?? handle}</div>
             <div className="text-xs text-muted-foreground">@{handle} · {timeAgo(post.created_at)}</div>
           </div>
         </Link>
+
+        {/* Menu (supprimer si owner) */}
+        {isOwner && (
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(s => !s)}
+              className="p-2 hover:bg-white/5 rounded-full transition"
+            >
+              <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 top-10 bg-card border border-white/10 rounded-xl shadow-xl z-10 overflow-hidden min-w-[140px]">
+                <button
+                  onClick={() => { deletePost.mutate(); setShowMenu(false); }}
+                  className="flex items-center gap-2 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Supprimer
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
-      {post.content && <p className="px-5 pb-3 text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>}
+      {/* Caption */}
+      {post.content && (
+        <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
+      )}
 
-      {post.media_urls.length > 0 && (
-        <div className={`grid gap-1 ${post.media_urls.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-          {post.media_urls.slice(0, 4).map((url, i) => (
+      {/* Media */}
+      {post.media_urls?.length > 0 && (
+        <div className={`grid gap-[2px] ${post.media_urls.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+          {post.media_urls.slice(0, 4).map((url, i) =>
             post.media_type === "video" ? (
-              <video key={i} src={url} controls className="w-full aspect-square object-cover bg-black" />
+              <video key={i} src={url} controls playsInline className="w-full aspect-square object-cover bg-black" />
             ) : (
-              <img key={i} src={url} alt="" className="w-full aspect-square object-cover" />
+              <img key={i} src={url} alt="" className="w-full aspect-square object-cover" loading="lazy" />
             )
-          ))}
+          )}
         </div>
       )}
 
-      <div className="flex items-center gap-1 px-3 py-3 border-t border-white/5">
+      {/* Actions */}
+      <div className="px-4 pt-2 flex items-center gap-4">
         <button
           onClick={() => toggleLike.mutate()}
           disabled={!user || toggleLike.isPending}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${
-            liked ? "text-primary" : "hover:bg-white/5 text-muted-foreground"
-          }`}
+          className="flex items-center gap-1.5 transition"
         >
-          <span>{liked ? "♥" : "♡"}</span>
-          <span>{post.likes_count}</span>
+          <Heart className={`w-6 h-6 transition ${liked ? "fill-red-500 text-red-500" : "text-foreground"}`} />
         </button>
-        <button
-          onClick={() => setShowComments((s) => !s)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium hover:bg-white/5 text-muted-foreground"
-        >
-          <span>💬</span>
-          <span>{post.comments_count}</span>
+        <button onClick={() => setShowComments(s => !s)} className="flex items-center gap-1.5">
+          <MessageCircle className="w-6 h-6" />
         </button>
         <button
           onClick={async () => {
             const url = `${window.location.origin}/u/${handle}`;
             try {
               if (navigator.share) {
-                await navigator.share({ title: "Carswap AI", text: post.content ?? "Regarde ce post", url });
+                await navigator.share({ title: "TORQUE", text: post.content ?? "", url });
               } else {
                 await navigator.clipboard.writeText(url);
+                toast.success("Lien copié !");
               }
             } catch {}
           }}
-          className="ml-auto flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium hover:bg-white/5 text-muted-foreground"
-          aria-label="Partager"
+          className="ml-auto"
         >
-          <span>↗</span>
-          <span className="hidden sm:inline">Partager</span>
+          <Share2 className="w-6 h-6 text-muted-foreground" />
         </button>
       </div>
 
+      {/* Likes count */}
+      <div className="px-4 pt-1 pb-3">
+        <p className="text-sm font-bold">{post.likes_count} j'aime</p>
+        {post.comments_count > 0 && !showComments && (
+          <button
+            onClick={() => setShowComments(true)}
+            className="text-sm text-muted-foreground mt-0.5"
+          >
+            Voir les {post.comments_count} commentaires
+          </button>
+        )}
+      </div>
+
+      {/* Comments */}
       {showComments && (
         <Comments
           postId={post.id}
-          onSent={() => {
-            qc.invalidateQueries({ queryKey: ["feed"] });
-          }}
           commentText={commentText}
           setCommentText={setCommentText}
+          onSent={() => qc.invalidateQueries({ queryKey: ["feed"] })}
         />
       )}
     </article>
@@ -148,14 +201,14 @@ export function PostCard({ post }: { post: FeedPost }) {
 
 function Comments({
   postId,
-  onSent,
   commentText,
   setCommentText,
+  onSent,
 }: {
   postId: string;
-  onSent: () => void;
   commentText: string;
   setCommentText: (s: string) => void;
+  onSent: () => void;
 }) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -164,70 +217,69 @@ function Comments({
     queryKey: ["comments", postId],
     queryFn: async () => {
       const { data } = await supabase
-        .from("post_comments")
+        .from("comments")
         .select("*")
         .eq("post_id", postId)
         .order("created_at", { ascending: true });
       if (!data?.length) return [];
-      const ids = [...new Set(data.map((c) => c.author_id))];
+      const ids = [...new Set(data.map((c) => c.user_id))];
       const { data: profs } = await supabase
         .from("profiles")
         .select("user_id, display_name, username, avatar_url")
         .in("user_id", ids);
       const map = new Map(profs?.map((p) => [p.user_id, p]) ?? []);
-      return data.map((c) => ({ ...c, author: map.get(c.author_id) ?? null }));
+      return data.map((c) => ({ ...c, author: map.get(c.user_id) ?? null }));
     },
   });
 
   const send = useMutation({
     mutationFn: async () => {
       if (!user || !commentText.trim()) return;
-      await supabase.from("post_comments").insert({
+      const { error } = await supabase.from("comments").insert({
         post_id: postId,
-        author_id: user.id,
+        user_id: user.id,
         content: commentText.trim(),
       });
+      if (error) throw error;
     },
     onSuccess: () => {
       setCommentText("");
       qc.invalidateQueries({ queryKey: ["comments", postId] });
       onSent();
     },
+    onError: (e: any) => toast.error("Erreur : " + e.message),
   });
 
   return (
-    <div className="border-t border-white/5 p-4 space-y-3 bg-black/20">
+    <div className="border-t border-white/5 px-4 py-3 space-y-3 bg-black/20">
       {comments.map((c: any) => (
         <div key={c.id} className="flex gap-3 text-sm">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center text-xs font-bold shrink-0">
             {(c.author?.display_name ?? "?").slice(0, 2).toUpperCase()}
           </div>
           <div className="flex-1">
-            <div className="font-semibold text-xs">{c.author?.display_name ?? "Utilisateur"}</div>
-            <div className="text-sm">{c.content}</div>
+            <span className="font-semibold text-xs">{c.author?.display_name ?? "Membre"} </span>
+            <span className="text-sm">{c.content}</span>
           </div>
         </div>
       ))}
       {user && (
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            send.mutate();
-          }}
-          className="flex gap-2 pt-2"
+          onSubmit={(e) => { e.preventDefault(); send.mutate(); }}
+          className="flex gap-2 pt-1"
         >
           <input
             value={commentText}
             onChange={(e) => setCommentText(e.target.value)}
             placeholder="Ajouter un commentaire…"
-            className="input flex-1"
+            className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-sm focus:outline-none focus:border-primary"
           />
           <button
             type="submit"
             disabled={!commentText.trim() || send.isPending}
-            className="bg-primary text-primary-foreground px-4 rounded-full font-semibold disabled:opacity-50 text-sm"
+            className="bg-primary text-primary-foreground px-4 py-1.5 rounded-full font-semibold disabled:opacity-50 text-sm"
           >
-            Envoyer
+            →
           </button>
         </form>
       )}
