@@ -11,20 +11,17 @@ export const Route = createFileRoute("/create-post")({
   component: () => <RequireAuth><CreatePost /></RequireAuth>,
 });
 
-type MediaType = "photo" | "video" | null;
-
 function CreatePost() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const [mediaType, setMediaType] = useState<MediaType>(null);
+  const [mediaType, setMediaType] = useState<"photo" | "video" | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  const handlePickMedia = (type: MediaType) => {
+  const handlePickMedia = (type: "photo" | "video") => {
     setMediaType(type);
     if (fileRef.current) {
       fileRef.current.accept = type === "photo" ? "image/*" : "video/*";
@@ -51,32 +48,28 @@ function CreatePost() {
       toast.error("Ajoute une photo, une vidéo ou une légende");
       return;
     }
-
     setUploading(true);
     let mediaUrl: string | null = null;
 
     if (file && user) {
       const ext = file.name.split(".").pop();
-      const path = `posts/${user.id}/${Date.now()}.${ext}`;
+      const path = `${user.id}/${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("post-media")
-        .upload(path, file);
+        .upload(path, file, { upsert: true });
 
       if (uploadError) {
-        toast.error("Erreur lors de l'upload du fichier");
+        toast.error("Erreur upload : " + uploadError.message);
         setUploading(false);
         return;
       }
-
-      const { data: urlData } = supabase.storage
-        .from("post-media")
-        .getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from("post-media").getPublicUrl(path);
       mediaUrl = urlData.publicUrl;
     }
 
-    const { error: insertError } = await supabase.from("posts").insert({
+    const { error } = await supabase.from("posts").insert({
       author_id: user!.id,
-      content: caption.trim(),
+      content: caption.trim() || null,
       media_urls: mediaUrl ? [mediaUrl] : [],
       media_type: mediaType === "video" ? "video" : "image",
       likes_count: 0,
@@ -84,113 +77,68 @@ function CreatePost() {
     });
 
     setUploading(false);
-
-    if (insertError) {
-      toast.error("Erreur lors de la publication");
+    if (error) {
+      toast.error("Erreur publication : " + error.message);
       return;
     }
-
-    toast.success("Publication créée !");
-    navigate({ to: "/feed" } as any);
+    toast.success("Publié !");
+    navigate({ to: "/profile" } as any);
   };
 
   return (
     <PageShell>
       <div className="max-w-2xl mx-auto px-4">
-
-        {/* Header */}
         <div className="flex items-center justify-between py-3">
-          <button
-            onClick={() => navigate({ to: "/feed" } as any)}
-            className="p-2 -ml-2 hover:bg-white/5 rounded-lg transition"
-          >
+          <button onClick={() => navigate({ to: "/feed" } as any)} className="p-2 -ml-2 hover:bg-white/5 rounded-lg transition">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-lg font-bold">Nouvelle publication</h1>
-          <button
-            onClick={handlePublish}
-            disabled={uploading}
-            className="text-sm font-bold text-primary hover:text-primary/80 disabled:opacity-40 transition"
-          >
+          <button onClick={handlePublish} disabled={uploading} className="text-sm font-bold text-primary disabled:opacity-40">
             {uploading ? "..." : "Publier"}
           </button>
         </div>
 
-        {/* Choisir type si pas encore choisi */}
         {!file && (
-          <div className="grid grid-cols-2 gap-4 mt-6">
-            <button
-              onClick={() => handlePickMedia("photo")}
-              className="flex flex-col items-center justify-center gap-3 aspect-square rounded-2xl bg-white/5 border border-white/10 hover:border-primary/50 hover:bg-white/10 transition"
-            >
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <button onClick={() => handlePickMedia("photo")} className="flex flex-col items-center justify-center gap-3 aspect-square rounded-2xl bg-white/5 border border-white/10 hover:border-primary/50 transition">
               <ImagePlus className="w-10 h-10 text-primary" />
               <span className="text-sm font-semibold">Photo</span>
             </button>
-            <button
-              onClick={() => handlePickMedia("video")}
-              className="flex flex-col items-center justify-center gap-3 aspect-square rounded-2xl bg-white/5 border border-white/10 hover:border-primary/50 hover:bg-white/10 transition"
-            >
+            <button onClick={() => handlePickMedia("video")} className="flex flex-col items-center justify-center gap-3 aspect-square rounded-2xl bg-white/5 border border-white/10 hover:border-primary/50 transition">
               <Video className="w-10 h-10 text-primary" />
               <span className="text-sm font-semibold">Vidéo / Reel</span>
             </button>
           </div>
         )}
 
-        {/* Input fichier caché */}
-        <input
-          ref={fileRef}
-          type="file"
-          className="hidden"
-          onChange={handleFileChange}
-        />
+        <input ref={fileRef} type="file" className="hidden" onChange={handleFileChange} />
 
-        {/* Aperçu */}
         {preview && (
           <div className="mt-4 relative rounded-2xl overflow-hidden">
-            <button
-              onClick={handleRemove}
-              className="absolute top-2 right-2 z-10 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition"
-            >
+            <button onClick={handleRemove} className="absolute top-2 right-2 z-10 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center">
               <X className="w-4 h-4" />
             </button>
             {mediaType === "photo" ? (
-              <img
-                src={preview}
-                alt="Aperçu"
-                className="w-full max-h-96 object-cover rounded-2xl"
-              />
+              <img src={preview} alt="" className="w-full max-h-96 object-cover" />
             ) : (
-              <video
-                src={preview}
-                controls
-                className="w-full max-h-96 rounded-2xl bg-black"
-              />
+              <video src={preview} controls className="w-full max-h-96 bg-black" />
             )}
           </div>
         )}
 
-        {/* Légende */}
-        <div className="mt-4">
-          <textarea
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            placeholder="Ajoute une légende..."
-            rows={4}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary resize-none"
-          />
-        </div>
+        <textarea
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          placeholder="Ajoute une légende..."
+          rows={4}
+          className="w-full mt-4 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary resize-none"
+        />
 
-        {/* Bouton publier */}
         {(file || caption.trim()) && (
-          <button
-            onClick={handlePublish}
-            disabled={uploading}
-            className="w-full mt-4 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground py-3 rounded-xl font-semibold transition"
-          >
+          <button onClick={handlePublish} disabled={uploading} className="w-full mt-4 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground py-3 rounded-xl font-semibold transition">
             {uploading ? "Publication en cours..." : "Publier"}
           </button>
         )}
-
       </div>
     </PageShell>
   );

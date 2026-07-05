@@ -1,0 +1,4 @@
+projectContext:
+  enabled: true
+  maxFiles: 500
+  maxFileSizeKB: 800
