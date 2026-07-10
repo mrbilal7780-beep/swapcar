@@ -3,8 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
-import { Settings, Grid3x3, Clapperboard, Car, ShieldCheck } from "lucide-react";
+import { Settings, Grid3x3, Clapperboard, Car, ShieldCheck, X, UserMinus } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Mon profil — TORQUE" }] }),
@@ -12,11 +14,14 @@ export const Route = createFileRoute("/profile")({
 });
 
 type Tab = "posts" | "reels" | "garage";
+type Modal = "followers" | "following" | null;
 
 function Profile() {
   const { user, signOut } = useAuth();
   const userId = user!.id;
+  const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("posts");
+  const [modal, setModal] = useState<Modal>(null);
 
   const { data: profile } = useQuery({
     queryKey: ["profile", userId],
@@ -54,6 +59,62 @@ function Profile() {
     },
   });
 
+  // Liste des abonnés (ceux qui me suivent)
+  const { data: followers = [] } = useQuery({
+    queryKey: ["followers", userId],
+    enabled: modal === "followers",
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("followings")
+        .select("follower_id")
+        .eq("following_id", userId);
+      if (!data?.length) return [];
+      const ids = data.map(f => f.follower_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, username, avatar_url")
+        .in("user_id", ids);
+      return profiles ?? [];
+    },
+  });
+
+  // Liste des abonnements (ceux que je suis)
+  const { data: following = [] } = useQuery({
+    queryKey: ["following", userId],
+    enabled: modal === "following",
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("followings")
+        .select("following_id")
+        .eq("follower_id", userId);
+      if (!data?.length) return [];
+      const ids = data.map(f => f.following_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, username, avatar_url")
+        .in("user_id", ids);
+      return profiles ?? [];
+    },
+  });
+
+  // Se désabonner depuis la liste
+  const unfollow = useMutation({
+    mutationFn: async (targetId: string) => {
+      const { error } = await supabase
+        .from("followings")
+        .delete()
+        .eq("follower_id", userId)
+        .eq("following_id", targetId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["following", userId] });
+      qc.invalidateQueries({ queryKey: ["profile", userId] });
+      toast.success("Désabonné");
+    },
+    onError: () => toast.error("Erreur"),
+  });
+
   const photos = myPosts.filter((p: any) => p.media_type !== "video");
   const reels = myPosts.filter((p: any) => p.media_type === "video");
   const displayName = profile?.display_name ?? user!.email?.split("@")[0] ?? "Membre";
@@ -63,6 +124,7 @@ function Profile() {
   return (
     <PageShell>
       <div className="max-w-2xl mx-auto">
+
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3">
           <h1 className="text-lg font-bold">{username}</h1>
@@ -81,9 +143,20 @@ function Profile() {
             </div>
           )}
           <div className="flex-1 grid grid-cols-3 text-center">
-            <StatBlock value={profile?.posts_count ?? myPosts.length} label="Posts" />
-            <StatBlock value={profile?.followers_count ?? 0} label="Abonnés" />
-            <StatBlock value={profile?.following_count ?? 0} label="Abonnements" />
+            <div>
+              <div className="text-lg font-bold">{profile?.posts_count ?? myPosts.length}</div>
+              <div className="text-xs text-muted-foreground">Posts</div>
+            </div>
+            {/* Abonnés cliquable */}
+            <button onClick={() => setModal("followers")} className="hover:opacity-70 transition">
+              <div className="text-lg font-bold">{profile?.followers_count ?? 0}</div>
+              <div className="text-xs text-muted-foreground">Abonnés</div>
+            </button>
+            {/* Abonnements cliquable */}
+            <button onClick={() => setModal("following")} className="hover:opacity-70 transition">
+              <div className="text-lg font-bold">{profile?.following_count ?? 0}</div>
+              <div className="text-xs text-muted-foreground">Abonnements</div>
+            </button>
           </div>
         </div>
 
@@ -131,8 +204,10 @@ function Profile() {
           reels.length === 0 ? <EmptyState text="Aucun reel" /> : (
             <div className="grid grid-cols-3 gap-[2px]">
               {reels.map((p: any) => (
-                <div key={p.id} className="aspect-[9/16] bg-white/5">
-                  {p.media_urls?.[0] && <video src={p.media_urls[0]} className="w-full h-full object-cover" muted />}
+                <div key={p.id} className="aspect-[9/16] bg-white/5 relative">
+                  {p.media_urls?.[0] && (
+                    <video src={p.media_urls[0]} className="w-full h-full object-cover" muted />
+                  )}
                 </div>
               ))}
             </div>
@@ -177,15 +252,98 @@ function Profile() {
           </button>
         </div>
       </div>
+
+      {/* Modal Abonnés */}
+      {modal === "followers" && (
+        <Modal title={`Abonnés (${profile?.followers_count ?? 0})`} onClose={() => setModal(null)}>
+          {followers.length === 0 ? (
+            <p className="text-center text-muted-foreground text-sm py-8">Aucun abonné pour le moment</p>
+          ) : (
+            followers.map((p: any) => (
+              <UserRow
+                key={p.user_id}
+                profile={p}
+                action={null}
+              />
+            ))
+          )}
+        </Modal>
+      )}
+
+      {/* Modal Abonnements */}
+      {modal === "following" && (
+        <Modal title={`Abonnements (${profile?.following_count ?? 0})`} onClose={() => setModal(null)}>
+          {following.length === 0 ? (
+            <p className="text-center text-muted-foreground text-sm py-8">Tu ne suis personne encore</p>
+          ) : (
+            following.map((p: any) => (
+              <UserRow
+                key={p.user_id}
+                profile={p}
+                action={
+                  <button
+                    onClick={() => unfollow.mutate(p.user_id)}
+                    disabled={unfollow.isPending}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-400 transition px-3 py-1.5 rounded-full border border-white/10 hover:border-red-400/30"
+                  >
+                    <UserMinus className="w-3.5 h-3.5" />
+                    Se désabonner
+                  </button>
+                }
+              />
+            ))
+          )}
+        </Modal>
+      )}
     </PageShell>
   );
 }
 
-function StatBlock({ value, label }: { value: number; label: string }) {
+function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div>
-      <div className="text-lg font-bold">{value}</div>
-      <div className="text-xs text-muted-foreground">{label}</div>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-2xl bg-card rounded-t-2xl border-t border-white/10 max-h-[70vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Modal header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
+          <h2 className="font-bold text-sm">{title}</h2>
+          <button onClick={onClose} className="p-1 hover:bg-white/5 rounded-full transition">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        {/* Modal content scrollable */}
+        <div className="overflow-y-auto flex-1 px-4 py-2 divide-y divide-white/5">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UserRow({ profile, action }: { profile: any; action: React.ReactNode }) {
+  const initials = (profile.display_name ?? profile.username ?? "?").slice(0, 2).toUpperCase();
+  return (
+    <div className="flex items-center gap-3 py-3">
+      <Link
+        to="/u/$username"
+        params={{ username: profile.username ?? profile.user_id }}
+        className="flex items-center gap-3 flex-1 min-w-0"
+      >
+        {profile.avatar_url ? (
+          <img src={profile.avatar_url} alt="" className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
+        ) : (
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center font-bold text-sm flex-shrink-0">
+            {initials}
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="font-semibold text-sm truncate">{profile.display_name ?? profile.username}</p>
+          {profile.username && <p className="text-xs text-muted-foreground truncate">@{profile.username}</p>}
+        </div>
+      </Link>
+      {action}
     </div>
   );
 }
