@@ -154,3 +154,6 @@ Ces actions permettront non seulement d'améliorer la sécurité et la performan
 - **Analyse des retours :** Je planifierai une collecte de feedbacks post-implémentation auprès des utilisateurs concernant le processus d'authentification afin de détecter d’éventuelles points de friction à améliorer.
 
 En réalisant ces actions, je m'assurerai que l'authentification des utilisateurs soit sécurisée, rapide et intuitive, tout en fournissant une excellent expérience utilisateur à travers l'application mobile Swapcar.
+
+## 22:01
+- **PM**: Bien sûr ! Quelles informations spécifiques cherches-tu concernant le code mobile-auth-torque ?
