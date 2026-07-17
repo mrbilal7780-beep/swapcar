@@ -1,133 +1,300 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
+import { Search, X, Grid3x3, Users } from "lucide-react";
 
 export const Route = createFileRoute("/explore")({
-  head: () => ({
-    meta: [
-      { title: "Explorer les véhicules — TORQUE" },
-      { name: "description", content: "Parcourez les véhicules disponibles à l'échange et filtrez par marque, budget et carburant." },
-      { property: "og:title", content: "Explorer — TORQUE" },
-      { property: "og:description", content: "Trouvez le véhicule parfait à échanger." },
-    ],
-  }),
-  component: Explore,
+  head: () => ({ meta: [{ title: "Explorer — TORQUE" }] }),
+  component: () => <RequireAuth><Explore /></RequireAuth>,
 });
 
-function Explore() {
-  const [brand, setBrand] = useState<string>("all");
-  const [fuel, setFuel] = useState<string>("all");
-  const [max, setMax] = useState<number>(100000);
+type Tab = "posts" | "people";
 
-  const { data: cars = [], isLoading } = useQuery({
-    queryKey: ["vehicles", "published"],
+function Explore() {
+  const { user } = useAuth();
+  const [query, setQuery] = useState("");
+  const [tab, setTab] = useState<Tab>("posts");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  // Debounce la recherche
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  // Posts populaires (no search)
+  const { data: popularPosts = [], isLoading: loadingPosts } = useQuery({
+    queryKey: ["explore-posts", debouncedQuery],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vehicles")
-        .select("*")
-        .eq("status", "published")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+      let q = supabase
+        .from("posts")
+        .select(`
+          *,
+          profiles!posts_author_id_fkey (
+            user_id, display_name, username, avatar_url
+          )
+        `)
+        .order("likes_count", { ascending: false })
+        .limit(30);
+
+      if (debouncedQuery.trim()) {
+        q = q.ilike("content", `%${debouncedQuery}%`);
+      }
+
+      const { data } = await q;
       return data ?? [];
     },
   });
 
-  const filtered = useMemo(
-    () =>
-      cars.filter(
-        (c) =>
-          (brand === "all" || c.brand === brand) &&
-          (fuel === "all" || c.fuel === fuel) &&
-          Number(c.price) <= max,
-      ),
-    [brand, fuel, max, cars],
-  );
-
-  const brands = Array.from(new Set(cars.map((c) => c.brand)));
+  // Recherche utilisateurs
+  const { data: users = [], isLoading: loadingUsers } = useQuery({
+    queryKey: ["explore-users", debouncedQuery],
+    enabled: tab === "people",
+    queryFn: async () => {
+      if (!debouncedQuery.trim()) {
+        // Suggestions : membres les plus actifs
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .neq("user_id", user?.id ?? "")
+          .order("followers_count", { ascending: false })
+          .limit(20);
+        return data ?? [];
+      }
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .neq("user_id", user?.id ?? "")
+        .or(`username.ilike.%${debouncedQuery}%,display_name.ilike.%${debouncedQuery}%`)
+        .limit(30);
+      return data ?? [];
+    },
+  });
 
   return (
     <PageShell>
-      <section className="max-w-7xl mx-auto px-6 md:px-8 py-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight">
-              Explorer <span className="text-gradient">les véhicules</span>
-            </h1>
-            <p className="text-muted-foreground mt-2">{filtered.length} véhicules disponibles à l'échange</p>
-            <Link
-              to={"/search-users" as any}
-              className="inline-flex items-center gap-2 mt-3 text-sm text-primary hover:underline"
-            >
-              Rechercher des membres →
-            </Link>
+      <div className="max-w-2xl mx-auto">
+
+        {/* Barre de recherche */}
+        <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-white/5 px-4 py-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Rechercher des posts, membres..."
+              className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:border-primary"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+              >
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-2 mt-3">
+            <TabPill active={tab === "posts"} onClick={() => setTab("posts")} icon={Grid3x3} label="Publications" />
+            <TabPill active={tab === "people"} onClick={() => setTab("people")} icon={Users} label="Membres" />
           </div>
         </div>
 
-        <div className="glass rounded-2xl p-5 grid md:grid-cols-3 gap-4 mb-10">
-          <Select label="Marque" value={brand} onChange={setBrand} options={[{ v: "all", l: "Toutes" }, ...brands.map((b) => ({ v: b, l: b }))]} />
-          <Select label="Carburant" value={fuel} onChange={setFuel} options={[{ v: "all", l: "Tous" }, { v: "Essence", l: "Essence" }, { v: "Diesel", l: "Diesel" }, { v: "Hybride", l: "Hybride" }, { v: "Électrique", l: "Électrique" }]} />
-          <div>
-            <label className="text-xs uppercase tracking-widest text-muted-foreground">Budget max : {max.toLocaleString("fr-FR")} €</label>
-            <input type="range" min={10000} max={100000} step={1000} value={max} onChange={(e) => setMax(Number(e.target.value))} className="w-full mt-3 accent-[var(--primary)]" />
-          </div>
-        </div>
-
-        {isLoading && <div className="text-center text-muted-foreground py-12">Chargement…</div>}
-        {!isLoading && filtered.length === 0 && (
-          <div className="glass rounded-3xl p-12 text-center">
-            <div className="text-4xl mb-3">🚗</div>
-            <h2 className="text-xl font-bold">Aucun véhicule pour le moment</h2>
-            <p className="text-muted-foreground mt-2">Soyez le premier à déposer le vôtre.</p>
-            <Link to="/add-vehicle" className="inline-block mt-6 bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold glow">
-              Déposer ma voiture
-            </Link>
-          </div>
+        {/* Posts en grille */}
+        {tab === "posts" && (
+          <>
+            {loadingPosts && (
+              <div className="flex justify-center py-12">
+                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              </div>
+            )}
+            {!loadingPosts && popularPosts.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground text-sm">
+                {debouncedQuery ? `Aucun résultat pour "${debouncedQuery}"` : "Aucune publication"}
+              </div>
+            )}
+            {!loadingPosts && popularPosts.length > 0 && (
+              <div className="grid grid-cols-3 gap-[2px]">
+                {popularPosts.map((p: any) => (
+                  <PostThumb key={p.id} post={p} />
+                ))}
+              </div>
+            )}
+          </>
         )}
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((c) => (
-            <Link key={c.id} to="/vehicle/$id" params={{ id: c.id }} className="glass rounded-3xl overflow-hidden hover:scale-[1.02] transition-transform">
-              <div className="aspect-[16/10] overflow-hidden">
-                {c.photos?.[0] ? (
-                  <img src={c.photos[0]} alt={`${c.brand} ${c.model}`} loading="lazy" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary flex items-center justify-center text-4xl">🚗</div>
+        {/* Membres */}
+        {tab === "people" && (
+          <div className="px-4 py-3">
+            {loadingUsers && (
+              <div className="flex justify-center py-12">
+                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              </div>
+            )}
+            {!loadingUsers && users.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground text-sm">
+                {debouncedQuery ? `Aucun membre pour "${debouncedQuery}"` : "Aucun membre trouvé"}
+              </div>
+            )}
+            {!loadingUsers && (
+              <div className="space-y-1">
+                {!debouncedQuery && (
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">
+                    Membres populaires
+                  </p>
                 )}
+                {users.map((p: any) => (
+                  <Link
+                    key={p.user_id}
+                    to="/u/$username"
+                    params={{ username: p.username ?? p.user_id }}
+                    className="flex items-center gap-3 py-2.5 hover:opacity-80 transition"
+                  >
+                    {p.avatar_url ? (
+                      <img src={p.avatar_url} alt="" className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                        {(p.display_name ?? "?").slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{p.display_name ?? p.username}</p>
+                      <p className="text-xs text-muted-foreground">
+                        @{p.username} · {p.followers_count ?? 0} abonnés
+                      </p>
+                    </div>
+                    <span className="text-xs text-primary font-semibold">Voir →</span>
+                  </Link>
+                ))}
               </div>
-              <div className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-bold">{c.brand} {c.model}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{c.year} • {Number(c.mileage).toLocaleString("fr-FR")} km • {c.fuel}</p>
-                  </div>
-                  {c.city && <div className="text-xs glass px-2 py-1 rounded-full text-primary">{c.city}</div>}
-                </div>
-                <div className="mt-5 flex items-end justify-between">
-                  <div className="text-2xl font-bold">{Number(c.price).toLocaleString("fr-FR")} €</div>
-                  {c.ai_body_score != null && (
-                    <div className="text-xs text-muted-foreground">Score IA <span className="text-foreground font-semibold">{c.ai_body_score}</span></div>
-                  )}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+            )}
+          </div>
+        )}
+      </div>
     </PageShell>
   );
 }
 
-function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: { v: string; l: string }[] }) {
+function PostThumb({ post }: { post: any }) {
+  const [open, setOpen] = useState(false);
+  const profile = post.profiles;
+  const handle = profile?.username ?? profile?.user_id?.slice(0, 8);
+
   return (
-    <div>
-      <label className="text-xs uppercase tracking-widest text-muted-foreground">{label}</label>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="mt-2 w-full bg-secondary border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary">
-        {options.map((o) => (
-          <option key={o.v} value={o.v}>{o.l}</option>
-        ))}
-      </select>
-    </div>
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="aspect-square bg-white/5 relative group overflow-hidden"
+      >
+        {post.media_urls?.[0] ? (
+          post.media_type === "video" ? (
+            <video src={post.media_urls[0]} className="w-full h-full object-cover" muted />
+          ) : (
+            <img src={post.media_urls[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
+          )
+        ) : (
+          <div className="w-full h-full flex items-center justify-center p-2">
+            <p className="text-xs text-muted-foreground text-center line-clamp-3">{post.content}</p>
+          </div>
+        )}
+        {/* Hover overlay */}
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-3 text-white text-xs font-bold">
+          <span>❤️ {post.likes_count}</span>
+          <span>💬 {post.comments_count}</span>
+        </div>
+      </button>
+
+      {/* Modal post detail */}
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-card rounded-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-3 p-3 border-b border-white/5">
+              <Link
+                to="/u/$username"
+                params={{ username: handle }}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center font-bold text-xs">
+                  {(profile?.display_name ?? "?").slice(0, 2).toUpperCase()}
+                </div>
+                <span className="font-semibold text-sm">@{handle}</span>
+              </Link>
+              <button onClick={() => setOpen(false)} className="ml-auto p-1">
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            {/* Media */}
+            {post.media_urls?.[0] && (
+              post.media_type === "video" ? (
+                <video src={post.media_urls[0]} controls className="w-full max-h-80 object-cover bg-black" />
+              ) : (
+                <img src={post.media_urls[0]} alt="" className="w-full max-h-80 object-cover" />
+              )
+            )}
+
+            {/* Content */}
+            {post.content && (
+              <div className="p-3">
+                <p className="text-sm">{post.content}</p>
+              </div>
+            )}
+
+            {/* Stats + link */}
+            <div className="px-3 pb-3 flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">❤️ {post.likes_count} · 💬 {post.comments_count}</span>
+              <Link
+                to="/u/$username"
+                params={{ username: handle }}
+                onClick={() => setOpen(false)}
+                className="text-primary text-xs font-semibold"
+              >
+                Voir le profil →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function TabPill({
+  active,
+  onClick,
+  icon: Icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition ${
+        active
+          ? "bg-primary text-primary-foreground"
+          : "bg-white/5 border border-white/10 text-muted-foreground hover:bg-white/10"
+      }`}
+    >
+      <Icon className="w-3.5 h-3.5" />
+      {label}
+    </button>
   );
 }

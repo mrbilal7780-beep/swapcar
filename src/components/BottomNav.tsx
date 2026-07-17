@@ -1,12 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { Home, Compass, PlusSquare, MessageCircle, User } from "lucide-react";
+import { Map, Compass, PlusSquare, MessageCircle, User } from "lucide-react";
 
 const tabs = [
-  { to: "/feed", icon: Home, label: "Home" },
-  { to: "/explore", icon: Compass, label: "Explore" },
+  { to: "/map", icon: Map, label: "Carte" },
+  { to: "/explore", icon: Compass, label: "Explorer" },
   { to: "/create-post", icon: PlusSquare, label: "Post" },
   { to: "/chat", icon: MessageCircle, label: "Messages" },
-  { to: "/profile", icon: User, label: "Profile" },
+  { to: "/profile", icon: User, label: "Profil" },
 ];
 
 export function BottomNav() {
@@ -20,14 +20,14 @@ export function BottomNav() {
           <Link
             key={to}
             to={to as any}
-            className="flex-1 py-3 px-2 flex flex-col items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition"
+            className="flex-1 py-3 px-2 flex flex-col items-center gap-0.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition"
             activeProps={{
               className:
-                "flex-1 py-3 px-2 flex flex-col items-center gap-1 text-xs font-semibold text-primary transition",
+                "flex-1 py-3 px-2 flex flex-col items-center gap-0.5 text-xs font-semibold text-primary transition",
             }}
           >
-            <Icon className="w-5 h-5" />
-            <span className="hidden sm:inline">{label}</span>
+            <Icon className="w-6 h-6" />
+            <span className="text-[10px]">{label}</span>
           </Link>
         ))}
       </div>
