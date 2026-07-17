@@ -123,3 +123,34 @@ Cette initiative vise à élever significativement le niveau de sécurité de l'
 7. **Feedback des utilisateurs :** Analyser les retours des utilisateurs concernant les processus d'authentification et itérer sur le design et l'implémentation en fonction des besoins exprimés.
 
 Ces actions permettront non seulement d'améliorer la sécurité et la performance de l'application mobile mais aussi d'offrir une meilleure expérience utilisateur globale.
+
+## 21:55
+- **Ingénieur Frontend**: Mon action technique sur le code `mobile-auth-torque` ou sur Supabase, dans le contexte de l'optimisation des processus d'authentification des utilisateurs, se concentrera sur l'audit détaillé du code existant. Voici les étapes précises que je réaliserai :
+
+### 1. Audit du code existant
+- **Analyse des méthodes d'authentification :** J'examinerai toutes les méthodes d'authentification du code, y compris les flux OAuth pour les connexions via les réseaux sociaux, pour m'assurer qu'elles suivent les meilleures pratiques de sécurité.
+- **Vulnérabilités potentielles :** J'utiliserai des outils d’analyse statique de code (comme ESLint ou SonarQube) pour détecter les vulnérabilités potentielles et les failles de sécurité (telles que l’injection de code ou le stockage non sécurisé des jetons).
+- **Performance :** J’identifierai les sections du code qui pourraient causer des ralentissements, en prêtant attention aux appels synchrones dans des contextes où l’asynchrone pourrait être plus approprié.
+
+### 2. Intégration de Supabase
+- **Vérification de l’authentification par email et téléphone :** Je vais m'assurer que l'intégration avec l'API d'authentification de Supabase est correcte, en testant les cas d'échec pour voir comment le système réagit (par exemple, mauvaise adresse e-mail ou numéro de téléphone invalide).
+- **Réseaux sociaux :** Je vais examiner le flux d'authentification pour les connexions via Google, Facebook, etc., pour garantir une bonne gestion des sessions utilisateur après authentification.
+
+### 3. Optimisation des requêtes
+- **Asynchronisme :** Je vais refactoriser les appels pour qu’ils soient organiquement asynchrones, ce qui inclut l’utilisation des Promises ou async/await si ce n'est pas déjà le cas.
+- **Mise en cache :** Je prendrai en compte la possibilité d’implémenter un mécanisme de cache temporaire pour les données d'authentification qui sont fréquemment consultées.
+
+### 4. Gestion des erreurs
+- **Messages d'erreur explicites :** J’implémenterai des messages d'erreur clairs et explicites dans l’application pour chaque cas d'échec d’authentification.
+- **Logs d’erreurs :** J'ajouterai une fonctionnalité de journalisation pour enregistrer les erreurs d'authentification dans un système de monitoring (comme Sentry ou LogRocket) afin de pouvoir examiner et analyser les incidents survenus.
+
+### 5. Tests automatisés
+- **Tests unitaires et d'intégration :** Je vais développer des tests pour toutes les nouvelles fonctionnalités d'authentification, garantissant la couverture des cas indépendants de chaque méthode d'authentification. 
+
+### 6. Documentation
+- **Documentation technique :** Je mettrai à jour la documentation technique pour refléter les changements apportés au code et à l’intégration avec Supabase, en précisant les nouvelles méthodes, leurs flux d'utilisation, et des exemples d'appel.
+
+### 7. Feedback des utilisateurs
+- **Analyse des retours :** Je planifierai une collecte de feedbacks post-implémentation auprès des utilisateurs concernant le processus d'authentification afin de détecter d’éventuelles points de friction à améliorer.
+
+En réalisant ces actions, je m'assurerai que l'authentification des utilisateurs soit sécurisée, rapide et intuitive, tout en fournissant une excellent expérience utilisateur à travers l'application mobile Swapcar.
