@@ -58,3 +58,49 @@ Après cette analyse, je compilerai les résultats pour préparer le rapport et 
 Cette action devrait renforcer la sécurité de la solution d'authentification tout en assurant la conformité avec les normes de sécurité les plus élevées, limitant ainsi les risques pour les utilisateurs finaux et améliorant la fiabilité des opérations au sein de Swapcar.
 
 Cette initiative aidera également à établir une base solide pour de futures évolutions de l'application tout en s'assurant que toutes les parties prenantes sont conscientes des exigences de sécurité.
+
+## 21:32
+- **Ingénieur Frontend**: ### Action Technique : Audit et Amélioration de la Sécurité de l'Authentification pour `mobile-auth-torque`
+
+#### Étapes Détaillées :
+
+1. **Audit du Code :**
+   - **Analyse Statique du Code :** Utiliser des outils d'analyse statique pour identifier les vulnérabilités dans le code, notamment des bibliothèques obsolètes, des pratiques de codage non sécurisées et des erreurs de configuration.
+   - **Revue des Pratiques de Gestion de Sessions :** Vérifier les mécanismes de gestion des sessions, y compris la durée des sessions, le stockage des cookies dans un contexte sécurisé (secure, HttpOnly, SameSite) et la gestion des expirations.
+
+2. **Amélioration des Mécanismes de Sécurité :**
+   - **Hashage des Mots de Passe :** Implémenter un algorithme de hashage robuste tel que Argon2 avec des salages uniques et des itérations appropriées pour chaque mot de passe avant le stockage.
+     ```javascript
+     const argon2 = require('argon2');
+     const hashPassword = async (password) => {
+         return await argon2.hash(password);
+     };
+     ```
+   - **Mise en Place de JWT :** Assurer que les JWT incluent des claims appropriés (comme `iat`, `exp`, et `iss`) et utiliser des algorithmes de signature sécurisés (HS256 ou RS256). En outre, fournir des méthodes de rafraîchissement de token pour maintenir une session sécurisée sans demander une nouvelle authentification fréquente.
+     ```javascript
+     const jwt = require('jsonwebtoken');
+     const createToken = (user) => {
+         return jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+     };
+     ```
+   
+3. **Intégration avec Supabase :**
+   - **Configuration des Règles de Sécurité :** Définir des règles de Row Level Security (RLS) dans Supabase pour garantir que seuls les utilisateurs autorisés peuvent accéder et modifier certaines données.
+     ```sql
+     CREATE POLICY "Users can view their own profile"
+     ON users
+     FOR SELECT
+     USING (auth.uid() = user_id);
+     ```
+   - **Contrôles de Validation :** Établir des contraintes et des triggers au niveau de la base de données pour prévenir les injections SQL, comme l'utilisation de types de données stricts et de contrôles d'input au niveau de l'API.
+
+4. **Tests de Pénétration :**
+   - **Engagement d’une Équipe Externe ou Utilisation d’Outils Automatisés :** Mesurer la sécurité de l'application mobile en menant des tests de pénétration, en utilisant des outils comme OWASP ZAP ou Burp Suite pour simuler des attaques potentielles.
+   - **Analyse des Résultats :** Documenter les résultats du test de pénétration et prioriser les corrections basées sur les risques identifiés.
+
+5. **Documentation des Meilleures Pratiques :**
+   - **Création d’un Guide de Sécurité :** Rédiger un document qui traite des meilleures pratiques de sécurité d'authentification, des exemples de code sécurisé, ainsi que des précautions à prendre lors du développement de nouvelles fonctionnalités.
+   - **Séances de Sensibilisation :** Organiser des ateliers pour éduquer l'équipe de développement sur la sécurité des applications et les sensibiliser aux menaces courantes.
+
+#### Résultat Attendu :
+Cette initiative vise à élever significativement le niveau de sécurité de l'authentification de l'application mobile `mobile-auth-torque`, garantissant ainsi une meilleure protection des données des utilisateurs, un respect des normes de sécurité et une préparation adéquate pour les développements futurs. Grâce à cette approche proactive, Swapcar sera en mesure de réduire les risques en matière de sécurité tout en offrant un service fiable à ses utilisateurs.
