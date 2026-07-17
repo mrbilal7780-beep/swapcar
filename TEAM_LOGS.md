@@ -28,3 +28,33 @@ Une fois cette analyse préliminaire réalisée, je procéderai à la création 
    Prendre des notes sur tout problème détecté, notamment les erreurs potentielles et les zones où la performance semble compromise.
 
 Après cette analyse, je compilerai les résultats pour préparer le rapport et établir la liste des tâches à prioriser.
+
+## 21:31
+- **PM**: En tant qu'agent PM pour Swapcar et dans le cadre de l'analyse du code mobile-auth-torque, voici l'action technique que je propose :
+
+### Action Technique : Audit et Amélioration de la Sécurité de l'Authentification
+
+#### Étapes :
+
+1. **Audit du Code :**
+   - Analyser le code de `mobile-auth-torque` pour identifier les vulnérabilités potentielles liées à l'authentification.
+   - Rechercher des problèmes tels que la gestion des sessions, le stockage des mots de passe, et les failles potentielles aux attaques par injection.
+
+2. **Amélioration des Mécanismes de Sécurité :**
+   - **Hashage des Mots de Passe :** S'assurer que tous les mots de passe sont hashés avec des algorithmes robustes (comme Argon2) avant d'être stockés dans Supabase.
+   - **Mise en Place de JWT :** Vérifier que les tokens JWT (JSON Web Tokens) utilisés pour l'authentification sont correctement signés et expirent après un certain temps pour minimiser le risque d'accès non autorisé.
+
+3. **Intégration avec Supabase :**
+   - Configurer des règles de sécurité sur Supabase pour restreindre l'accès aux données sensibles en fonction des rôles des utilisateurs.
+   - Mettre en œuvre des contrôles de validation et de sécurité au niveau de la base de données pour prévenir les injections SQL et autres attaques maladroites.
+
+4. **Tests de Pénétration :**
+   - Effectuer des tests de pénétration et des analyses de sécurité pour simuler des attaques potentielles sur l'application mobile pour identifier des failles qui pourraient exister.
+
+5. **Documentation des Meilleures Pratiques :**
+   - Rédiger une documentation détaillant les meilleures pratiques d'authentification et de sécurité pour les développeurs travaillant sur mobile-auth-torque à l'avenir.
+
+#### Résultat Attendu :
+Cette action devrait renforcer la sécurité de la solution d'authentification tout en assurant la conformité avec les normes de sécurité les plus élevées, limitant ainsi les risques pour les utilisateurs finaux et améliorant la fiabilité des opérations au sein de Swapcar.
+
+Cette initiative aidera également à établir une base solide pour de futures évolutions de l'application tout en s'assurant que toutes les parties prenantes sont conscientes des exigences de sécurité.
