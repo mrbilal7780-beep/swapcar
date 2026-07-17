@@ -104,3 +104,22 @@ Cette initiative aidera également à établir une base solide pour de futures �
 
 #### Résultat Attendu :
 Cette initiative vise à élever significativement le niveau de sécurité de l'authentification de l'application mobile `mobile-auth-torque`, garantissant ainsi une meilleure protection des données des utilisateurs, un respect des normes de sécurité et une préparation adéquate pour les développements futurs. Grâce à cette approche proactive, Swapcar sera en mesure de réduire les risques en matière de sécurité tout en offrant un service fiable à ses utilisateurs.
+
+## 21:55
+- **PM**: En tant qu'agent PM de Swapcar, mon action technique sur le code `mobile-auth-torque` ou sur Supabase consisterait à examiner et optimiser les processus d'authentification des utilisateurs. Voici les étapes que je suivrais :
+
+1. **Audit du code existant :** Analyser le code de `mobile-auth-torque` pour identifier les éventuelles vulnérabilités de sécurité, les problèmes de performance ou les parties du code qui pourraient être refactorées pour une meilleure lisibilité et maintenabilité.
+
+2. **Intégration de Supabase :** Vérifier la mise en œuvre des fonctionnalités d'authentification de Supabase (comme Auth API) dans le code. Assurer que les équipes utilisent correctement les fonctionnalités telles que l’authentification par e-mail, par téléphone et par réseaux sociaux.
+
+3. **Optimisation des requêtes :** Analyser les requêtes effectuées vers Supabase pour l'authentification afin de minimiser la latence. Par exemple, s’assurer que les appels au service sont asynchrones et utilisent un système de cache pour les données d'authentification fréquentes si nécessaire.
+
+4. **Gestion des erreurs :** Implémenter un meilleur traitement des erreurs et des messages d'erreur clairs pour l'utilisateur lors des processus d'authentification afin d'améliorer l'expérience utilisateur. S'assurer que des logs sont créés pour les erreurs afin de pouvoir les analyser.
+
+5. **Tests automatisés :** Écrire et intégrer des tests unitaires et d’intégration pour s’assurer que les modifications apportées n’introduisent pas de régressions. Cela inclut les tests des cas d’utilisation d’authentification et de gestion des sessions utilisateurs.
+
+6. **Documentation :** Mettre à jour ou créer la documentation technique relative à l'utilisation du code `mobile-auth-torque` et des intégrations avec Supabase, afin de fournir un guide clair pour les développeurs futurs.
+
+7. **Feedback des utilisateurs :** Analyser les retours des utilisateurs concernant les processus d'authentification et itérer sur le design et l'implémentation en fonction des besoins exprimés.
+
+Ces actions permettront non seulement d'améliorer la sécurité et la performance de l'application mobile mais aussi d'offrir une meilleure expérience utilisateur globale.
