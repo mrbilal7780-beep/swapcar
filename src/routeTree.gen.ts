@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SearchUsersRouteImport } from './routes/search-users'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as MapRouteImport } from './routes/map'
@@ -17,6 +19,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as GarageRouteImport } from './routes/garage'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as CreatePostRouteImport } from './routes/create-post'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as AddVehicleRouteImport } from './routes/add-vehicle'
 import { Route as IndexRouteImport } from './routes/index'
@@ -29,6 +32,16 @@ import { Route as EventsIdRouteImport } from './routes/events.$id'
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchUsersRoute = SearchUsersRouteImport.update({
+  id: '/search-users',
+  path: '/search-users',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -64,6 +77,11 @@ const FeedRoute = FeedRouteImport.update({
 const ExploreRoute = ExploreRouteImport.update({
   id: '/explore',
   path: '/explore',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreatePostRoute = CreatePostRouteImport.update({
+  id: '/create-post',
+  path: '/create-post',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatRoute = ChatRouteImport.update({
@@ -111,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/add-vehicle': typeof AddVehicleRoute
   '/chat': typeof ChatRoute
+  '/create-post': typeof CreatePostRoute
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
   '/garage': typeof GarageRoute
@@ -118,6 +137,8 @@ export interface FileRoutesByFullPath {
   '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/search-users': typeof SearchUsersRoute
+  '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/events/$id': typeof EventsIdRoute
   '/events/new': typeof EventsNewRoute
@@ -129,6 +150,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/add-vehicle': typeof AddVehicleRoute
   '/chat': typeof ChatRoute
+  '/create-post': typeof CreatePostRoute
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
   '/garage': typeof GarageRoute
@@ -136,6 +158,8 @@ export interface FileRoutesByTo {
   '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/search-users': typeof SearchUsersRoute
+  '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/events/$id': typeof EventsIdRoute
   '/events/new': typeof EventsNewRoute
@@ -148,6 +172,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/add-vehicle': typeof AddVehicleRoute
   '/chat': typeof ChatRoute
+  '/create-post': typeof CreatePostRoute
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
   '/garage': typeof GarageRoute
@@ -155,6 +180,8 @@ export interface FileRoutesById {
   '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/search-users': typeof SearchUsersRoute
+  '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/events/$id': typeof EventsIdRoute
   '/events/new': typeof EventsNewRoute
@@ -168,6 +195,7 @@ export interface FileRouteTypes {
     | '/'
     | '/add-vehicle'
     | '/chat'
+    | '/create-post'
     | '/explore'
     | '/feed'
     | '/garage'
@@ -175,6 +203,8 @@ export interface FileRouteTypes {
     | '/map'
     | '/matches'
     | '/profile'
+    | '/search-users'
+    | '/settings'
     | '/sitemap.xml'
     | '/events/$id'
     | '/events/new'
@@ -186,6 +216,7 @@ export interface FileRouteTypes {
     | '/'
     | '/add-vehicle'
     | '/chat'
+    | '/create-post'
     | '/explore'
     | '/feed'
     | '/garage'
@@ -193,6 +224,8 @@ export interface FileRouteTypes {
     | '/map'
     | '/matches'
     | '/profile'
+    | '/search-users'
+    | '/settings'
     | '/sitemap.xml'
     | '/events/$id'
     | '/events/new'
@@ -204,6 +237,7 @@ export interface FileRouteTypes {
     | '/'
     | '/add-vehicle'
     | '/chat'
+    | '/create-post'
     | '/explore'
     | '/feed'
     | '/garage'
@@ -211,6 +245,8 @@ export interface FileRouteTypes {
     | '/map'
     | '/matches'
     | '/profile'
+    | '/search-users'
+    | '/settings'
     | '/sitemap.xml'
     | '/events/$id'
     | '/events/new'
@@ -223,6 +259,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AddVehicleRoute: typeof AddVehicleRoute
   ChatRoute: typeof ChatRoute
+  CreatePostRoute: typeof CreatePostRoute
   ExploreRoute: typeof ExploreRoute
   FeedRoute: typeof FeedRoute
   GarageRoute: typeof GarageRoute
@@ -230,6 +267,8 @@ export interface RootRouteChildren {
   MapRoute: typeof MapRoute
   MatchesRoute: typeof MatchesRoute
   ProfileRoute: typeof ProfileRoute
+  SearchUsersRoute: typeof SearchUsersRoute
+  SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   EventsIdRoute: typeof EventsIdRoute
   EventsNewRoute: typeof EventsNewRoute
@@ -245,6 +284,20 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search-users': {
+      id: '/search-users'
+      path: '/search-users'
+      fullPath: '/search-users'
+      preLoaderRoute: typeof SearchUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -294,6 +347,13 @@ declare module '@tanstack/react-router' {
       path: '/explore'
       fullPath: '/explore'
       preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create-post': {
+      id: '/create-post'
+      path: '/create-post'
+      fullPath: '/create-post'
+      preLoaderRoute: typeof CreatePostRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat': {
@@ -359,6 +419,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AddVehicleRoute: AddVehicleRoute,
   ChatRoute: ChatRoute,
+  CreatePostRoute: CreatePostRoute,
   ExploreRoute: ExploreRoute,
   FeedRoute: FeedRoute,
   GarageRoute: GarageRoute,
@@ -366,6 +427,8 @@ const rootRouteChildren: RootRouteChildren = {
   MapRoute: MapRoute,
   MatchesRoute: MatchesRoute,
   ProfileRoute: ProfileRoute,
+  SearchUsersRoute: SearchUsersRoute,
+  SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   EventsIdRoute: EventsIdRoute,
   EventsNewRoute: EventsNewRoute,
