@@ -157,3 +157,6 @@ En réalisant ces actions, je m'assurerai que l'authentification des utilisateur
 
 ## 22:01
 - **PM**: Bien sûr ! Quelles informations spécifiques cherches-tu concernant le code mobile-auth-torque ?
+
+## 22:01
+- **Dev**: Quel aspect du code mobile-auth-torque souhaites-tu explorer ? (ex. : fonctionnalités, intégration, bugs)
