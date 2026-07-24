@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
-import { Plus, ArrowLeft, Calendar, MapPin, Users, Car, ChevronRight, X } from "lucide-react";
+import { Plus, ArrowLeft, Calendar, MapPin, Users, Car, ChevronRight, X, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useRef } from "react";
 
@@ -37,15 +37,23 @@ function MapPage() {
 function EventList({ onSelect, onCreate }: { onSelect: (id: string) => void; onCreate: () => void }) {
   const [filter, setFilter] = useState<"upcoming" | "past">("upcoming");
   const [category, setCategory] = useState("all");
+  const [city, setCity] = useState("");
+  const [debouncedCity, setDebouncedCity] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedCity(city), 300);
+    return () => clearTimeout(t);
+  }, [city]);
 
   const { data: events = [], isLoading } = useQuery({
-    queryKey: ["events", filter, category],
+    queryKey: ["events", filter, category, debouncedCity],
     queryFn: async () => {
       const now = new Date().toISOString();
       let q = supabase.from("events").select("*").order("starts_at", { ascending: filter === "upcoming" });
       if (filter === "upcoming") q = q.gte("starts_at", now);
       else q = q.lt("starts_at", now);
       if (category !== "all") q = q.eq("category", category.toLowerCase());
+      if (debouncedCity.trim()) q = q.ilike("city", `%${debouncedCity.trim()}%`);
       const { data } = await q.limit(30);
       return data ?? [];
     },
@@ -60,6 +68,21 @@ function EventList({ onSelect, onCreate }: { onSelect: (id: string) => void; onC
             <button onClick={onCreate} className="flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-semibold">
               <Plus className="w-4 h-4" /> Créer
             </button>
+          </div>
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={city}
+              onChange={e => setCity(e.target.value)}
+              placeholder="Rechercher une ville..."
+              className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:border-primary"
+            />
+            {city && (
+              <button onClick={() => setCity("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
           </div>
           <div className="flex gap-2 mb-2">
             {["upcoming", "past"].map(f => (

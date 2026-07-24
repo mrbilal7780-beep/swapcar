@@ -7,6 +7,8 @@ import { Settings, Grid3x3, Clapperboard, Car, ShieldCheck, X, UserMinus } from 
 import { useState } from "react";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
+import { PostDetailModal } from "@/components/social/PostDetailModal";
+import type { FeedPost } from "@/components/social/PostCard";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Mon profil — TORQUE" }] }),
@@ -22,6 +24,7 @@ function Profile() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("posts");
   const [modal, setModal] = useState<Modal>(null);
+  const [openPostId, setOpenPostId] = useState<string | null>(null);
 
   const { data: profile } = useQuery({
     queryKey: ["profile", userId],
@@ -121,6 +124,17 @@ function Profile() {
   const username = profile?.username ?? user!.email?.split("@")[0];
   const initials = displayName.slice(0, 2).toUpperCase();
 
+  const toFeedPost = (p: any): FeedPost => ({
+    ...p,
+    author: {
+      user_id: userId,
+      display_name: profile?.display_name ?? null,
+      username: profile?.username ?? null,
+      avatar_url: profile?.avatar_url ?? null,
+    },
+  });
+  const openPost = myPosts.find((p: any) => p.id === openPostId);
+
   return (
     <PageShell>
       <div className="max-w-2xl mx-auto">
@@ -191,9 +205,9 @@ function Profile() {
           photos.length === 0 ? <EmptyState text="Aucune publication" /> : (
             <div className="grid grid-cols-3 gap-[2px]">
               {photos.map((p: any) => (
-                <div key={p.id} className="aspect-square bg-white/5">
+                <button key={p.id} onClick={() => setOpenPostId(p.id)} className="aspect-square bg-white/5">
                   {p.media_urls?.[0] && <img src={p.media_urls[0]} alt="" className="w-full h-full object-cover" />}
-                </div>
+                </button>
               ))}
             </div>
           )
@@ -204,11 +218,11 @@ function Profile() {
           reels.length === 0 ? <EmptyState text="Aucun reel" /> : (
             <div className="grid grid-cols-3 gap-[2px]">
               {reels.map((p: any) => (
-                <div key={p.id} className="aspect-[9/16] bg-white/5 relative">
+                <button key={p.id} onClick={() => setOpenPostId(p.id)} className="aspect-[9/16] bg-white/5 relative">
                   {p.media_urls?.[0] && (
                     <video src={p.media_urls[0]} className="w-full h-full object-cover" muted />
                   )}
-                </div>
+                </button>
               ))}
             </div>
           )
@@ -294,6 +308,10 @@ function Profile() {
             ))
           )}
         </Modal>
+      )}
+
+      {openPost && (
+        <PostDetailModal post={toFeedPost(openPost)} onClose={() => setOpenPostId(null)} />
       )}
     </PageShell>
   );

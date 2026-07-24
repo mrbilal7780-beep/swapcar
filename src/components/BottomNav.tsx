@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { Map, Compass, PlusSquare, MessageCircle, User } from "lucide-react";
+import { Home, Map, Compass, PlusSquare, MessageCircle, User } from "lucide-react";
 
 const tabs = [
+  { to: "/feed", icon: Home, label: "Feed" },
   { to: "/map", icon: Map, label: "Carte" },
   { to: "/explore", icon: Compass, label: "Explorer" },
   { to: "/create-post", icon: PlusSquare, label: "Post" },

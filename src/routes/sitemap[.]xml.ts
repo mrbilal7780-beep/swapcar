@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const BASE_URL = "https://swapcar.mr-bilal-7780.workers.dev";
 
-export const Route = createFileRoute("/sitemap[.]xml")({
+export const Route = createFileRoute("/sitemap.xml")({
   component: () => null,
   loader: async () => {
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>

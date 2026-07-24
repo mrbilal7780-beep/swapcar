@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Heart, MessageCircle, Share2, Trash2, MoreHorizontal } from "lucide-react";
+import { Heart, MessageCircle, Share2, Trash2, Pencil, MoreHorizontal, Eye, X, Check } from "lucide-react";
 import { toast } from "sonner";
 
 type PostAuthor = {
@@ -21,18 +21,38 @@ export type FeedPost = {
   media_type: string;
   likes_count: number;
   comments_count: number;
+  views_count?: number;
   created_at: string;
   author?: PostAuthor | null;
 };
 
-export function PostCard({ post, onDeleted }: { post: FeedPost; onDeleted?: () => void }) {
+export function PostCard({
+  post,
+  onDeleted,
+  defaultShowComments = false,
+}: {
+  post: FeedPost;
+  onDeleted?: () => void;
+  defaultShowComments?: boolean;
+}) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(defaultShowComments);
   const [commentText, setCommentText] = useState("");
   const [showMenu, setShowMenu] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [content, setContent] = useState(post.content);
+  const [editText, setEditText] = useState(post.content ?? "");
 
   const isOwner = user?.id === post.author_id;
+
+  const invalidatePosts = () => {
+    qc.invalidateQueries({ queryKey: ["feed-foryou"] });
+    qc.invalidateQueries({ queryKey: ["feed-following"] });
+    qc.invalidateQueries({ queryKey: ["my-posts"] });
+    qc.invalidateQueries({ queryKey: ["user-posts"] });
+    qc.invalidateQueries({ queryKey: ["explore-posts"] });
+  };
 
   // Like status
   const { data: liked } = useQuery({
@@ -60,8 +80,7 @@ export function PostCard({ post, onDeleted }: { post: FeedPost; onDeleted?: () =
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["post-liked", post.id] });
-      qc.invalidateQueries({ queryKey: ["feed"] });
-      qc.invalidateQueries({ queryKey: ["my-posts"] });
+      invalidatePosts();
     },
   });
 
@@ -73,11 +92,27 @@ export function PostCard({ post, onDeleted }: { post: FeedPost; onDeleted?: () =
     },
     onSuccess: () => {
       toast.success("Publication supprimée");
-      qc.invalidateQueries({ queryKey: ["feed"] });
-      qc.invalidateQueries({ queryKey: ["my-posts"] });
+      invalidatePosts();
       onDeleted?.();
     },
     onError: () => toast.error("Erreur lors de la suppression"),
+  });
+
+  // Edit post content
+  const editPost = useMutation({
+    mutationFn: async () => {
+      const trimmed = editText.trim();
+      if (!trimmed) throw new Error("La légende ne peut pas être vide");
+      const { error } = await supabase.from("posts").update({ content: trimmed }).eq("id", post.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Publication modifiée");
+      setContent(editText.trim());
+      setEditing(false);
+      invalidatePosts();
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erreur lors de la modification"),
   });
 
   const initials = (post.author?.display_name ?? post.author?.username ?? "?").slice(0, 2).toUpperCase();
@@ -101,7 +136,7 @@ export function PostCard({ post, onDeleted }: { post: FeedPost; onDeleted?: () =
           </div>
         </Link>
 
-        {/* Menu (supprimer si owner) */}
+        {/* Menu (modifier / supprimer si owner) */}
         {isOwner && (
           <div className="relative">
             <button
@@ -111,7 +146,14 @@ export function PostCard({ post, onDeleted }: { post: FeedPost; onDeleted?: () =
               <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
             </button>
             {showMenu && (
-              <div className="absolute right-0 top-10 bg-card border border-white/10 rounded-xl shadow-xl z-10 overflow-hidden min-w-[140px]">
+              <div className="absolute right-0 top-10 bg-card border border-white/10 rounded-xl shadow-xl z-10 overflow-hidden min-w-[160px]">
+                <button
+                  onClick={() => { setEditing(true); setEditText(content ?? ""); setShowMenu(false); }}
+                  className="flex items-center gap-2 w-full px-4 py-3 text-sm hover:bg-white/5 transition"
+                >
+                  <Pencil className="w-4 h-4" />
+                  Modifier
+                </button>
                 <button
                   onClick={() => { deletePost.mutate(); setShowMenu(false); }}
                   className="flex items-center gap-2 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition"
@@ -125,9 +167,38 @@ export function PostCard({ post, onDeleted }: { post: FeedPost; onDeleted?: () =
         )}
       </header>
 
-      {/* Caption */}
-      {post.content && (
-        <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
+      {/* Caption / edit mode */}
+      {editing ? (
+        <div className="px-4 pb-3 space-y-2">
+          <textarea
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            rows={3}
+            autoFocus
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary resize-none"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => editPost.mutate()}
+              disabled={editPost.isPending}
+              className="flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-xs font-semibold disabled:opacity-50"
+            >
+              <Check className="w-3.5 h-3.5" />
+              {editPost.isPending ? "Enregistrement..." : "Enregistrer"}
+            </button>
+            <button
+              onClick={() => { setEditing(false); setEditText(content ?? ""); }}
+              className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-xs font-semibold"
+            >
+              <X className="w-3.5 h-3.5" />
+              Annuler
+            </button>
+          </div>
+        </div>
+      ) : (
+        content && (
+          <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
+        )
       )}
 
       {/* Media */}
@@ -160,7 +231,7 @@ export function PostCard({ post, onDeleted }: { post: FeedPost; onDeleted?: () =
             const url = `${window.location.origin}/u/${handle}`;
             try {
               if (navigator.share) {
-                await navigator.share({ title: "TORQUE", text: post.content ?? "", url });
+                await navigator.share({ title: "TORQUE", text: content ?? "", url });
               } else {
                 await navigator.clipboard.writeText(url);
                 toast.success("Lien copié !");
@@ -173,9 +244,17 @@ export function PostCard({ post, onDeleted }: { post: FeedPost; onDeleted?: () =
         </button>
       </div>
 
-      {/* Likes count */}
+      {/* Likes count + views */}
       <div className="px-4 pt-1 pb-3">
-        <p className="text-sm font-bold">{post.likes_count} j'aime</p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm font-bold">{post.likes_count} j'aime</p>
+          {typeof post.views_count === "number" && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Eye className="w-3.5 h-3.5" />
+              {post.views_count} vues
+            </span>
+          )}
+        </div>
         {post.comments_count > 0 && !showComments && (
           <button
             onClick={() => setShowComments(true)}
@@ -192,7 +271,7 @@ export function PostCard({ post, onDeleted }: { post: FeedPost; onDeleted?: () =
           postId={post.id}
           commentText={commentText}
           setCommentText={setCommentText}
-          onSent={() => qc.invalidateQueries({ queryKey: ["feed"] })}
+          onSent={invalidatePosts}
         />
       )}
     </article>

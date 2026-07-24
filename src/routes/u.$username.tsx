@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/Header";
-import { PostCard, type FeedPost } from "@/components/social/PostCard";
+import { type FeedPost } from "@/components/social/PostCard";
+import { PostDetailModal } from "@/components/social/PostDetailModal";
 import { useAuth } from "@/lib/auth";
 import { Grid3x3, Car, ArrowLeft } from "lucide-react";
 import { useState } from "react";
@@ -24,6 +25,7 @@ function PublicProfile() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("posts");
+  const [openPostId, setOpenPostId] = useState<string | null>(null);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile-by-username", username],
@@ -124,6 +126,7 @@ function PublicProfile() {
   const isMe = user?.id === profileUserId;
   const handle = profile.username ?? profileUserId?.slice(0, 8);
   const photos = posts.filter((p) => p.media_type !== "video");
+  const openPost = posts.find((p) => p.id === openPostId);
 
   return (
     <PageShell>
@@ -203,11 +206,11 @@ function PublicProfile() {
           ) : (
             <div className="grid grid-cols-3 gap-[2px]">
               {photos.map((p) => (
-                <div key={p.id} className="aspect-square bg-white/5">
+                <button key={p.id} onClick={() => setOpenPostId(p.id)} className="aspect-square bg-white/5">
                   {p.media_urls?.[0] && (
                     <img src={p.media_urls[0]} alt="" className="w-full h-full object-cover" />
                   )}
-                </div>
+                </button>
               ))}
             </div>
           )
@@ -239,6 +242,10 @@ function PublicProfile() {
         )}
 
       </div>
+
+      {openPost && (
+        <PostDetailModal post={openPost} onClose={() => setOpenPostId(null)} />
+      )}
     </PageShell>
   );
 }

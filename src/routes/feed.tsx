@@ -1,18 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, useAuth } from "@/lib/auth";
-import { MoreHorizontal, Heart, MessageCircle, Share2, Bookmark, Eye } from "lucide-react";
-import { useRef, useEffect, useState } from "react";
+import { MoreHorizontal } from "lucide-react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
-import { toast } from "sonner";
+import { PostCard, type FeedPost } from "@/components/social/PostCard";
 
 export const Route = createFileRoute("/feed")({
   head: () => ({ meta: [{ title: "Feed — TORQUE" }] }),
   component: () => <RequireAuth><FeedPage /></RequireAuth>,
 });
 
-interface Post {
+interface RawPost {
   id: string;
   author_id: string;
   content: string | null;
@@ -21,7 +21,6 @@ interface Post {
   likes_count: number;
   comments_count: number;
   views_count: number;
-  score: number;
   created_at: string;
   display_name: string | null;
   username: string | null;
@@ -30,12 +29,22 @@ interface Post {
 
 type FeedMode = "following" | "foryou";
 
+function toFeedPost(p: RawPost): FeedPost {
+  return {
+    ...p,
+    author: {
+      user_id: p.author_id,
+      display_name: p.display_name,
+      username: p.username,
+      avatar_url: p.avatar_url,
+    },
+  };
+}
+
 function FeedPage() {
   const { user } = useAuth();
-  const qc = useQueryClient();
   const [mode, setMode] = useState<FeedMode>("foryou");
   const observerTarget = useRef<HTMLDivElement>(null);
-  const [saved, setSaved] = useState<Record<string, boolean>>({});
 
   // Posts "For You" — triés par score (algorithme)
   const forYouQuery = useInfiniteQuery({
@@ -47,7 +56,7 @@ function FeedPage() {
         .select("*")
         .range(pageParam, pageParam + 9);
       if (error) throw error;
-      return (data ?? []) as Post[];
+      return (data ?? []) as RawPost[];
     },
     getNextPageParam: (last, all) => last.length === 10 ? all.length * 10 : undefined,
     initialPageParam: 0,
@@ -65,7 +74,7 @@ function FeedPage() {
         .eq("follower_id", user!.id);
 
       const ids = followings?.map(f => f.following_id) ?? [];
-      if (ids.length === 0) return [] as Post[];
+      if (ids.length === 0) return [] as RawPost[];
 
       const { data, error } = await supabase
         .from("posts")
@@ -85,7 +94,7 @@ function FeedPage() {
         display_name: p.profiles?.display_name,
         username: p.profiles?.username,
         avatar_url: p.profiles?.avatar_url,
-      })) as Post[];
+      })) as RawPost[];
     },
     getNextPageParam: (last, all) => last.length === 10 ? all.length * 10 : undefined,
     initialPageParam: 0,
@@ -94,41 +103,37 @@ function FeedPage() {
   const activeQuery = mode === "foryou" ? forYouQuery : followingQuery;
   const posts = activeQuery.data?.pages.flatMap(p => p) ?? [];
 
-  // Likes de l'utilisateur
-  const { data: myLikes = [] } = useQuery({
-    queryKey: ["my-likes", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.from("likes").select("post_id").eq("user_id", user!.id);
-      return data?.map(l => l.post_id) ?? [];
-    },
-  });
-
-  const likedSet = new Set(myLikes);
-
-  const likeMutation = useMutation({
-    mutationFn: async ({ postId, isLiked }: { postId: string; isLiked: boolean }) => {
-      if (isLiked) {
-        await supabase.from("likes").delete().eq("post_id", postId).eq("user_id", user!.id);
-      } else {
-        await supabase.from("likes").insert({ post_id: postId, user_id: user!.id });
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["my-likes"] });
-      qc.invalidateQueries({ queryKey: ["feed-foryou"] });
-      qc.invalidateQueries({ queryKey: ["feed-following"] });
-    },
-  });
-
-  // Incrémenter les vues automatiquement
-  const recordView = async (postId: string) => {
-    if (!user) return;
+  // Incrémenter les vues — déclenché quand le post entre réellement dans le viewport
+  // (fonctionne aussi bien au scroll tactile qu'à la souris, contrairement à onMouseEnter)
+  const viewedRef = useRef<Set<string>>(new Set());
+  const recordView = useCallback(async (postId: string) => {
+    if (!user || viewedRef.current.has(postId)) return;
+    viewedRef.current.add(postId);
     await supabase.rpc("increment_post_view", {
       post_uuid: postId,
       viewer_uuid: user.id,
     });
-  };
+  }, [user]);
+
+  const viewObserver = useRef<IntersectionObserver | null>(null);
+  useEffect(() => {
+    viewObserver.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const postId = entry.target.getAttribute("data-post-id");
+            if (postId) recordView(postId);
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+    return () => viewObserver.current?.disconnect();
+  }, [recordView]);
+
+  const observePost = useCallback((el: HTMLElement | null) => {
+    if (el && viewObserver.current) viewObserver.current.observe(el);
+  }, []);
 
   // Infinite scroll
   useEffect(() => {
@@ -184,111 +189,11 @@ function FeedPage() {
           </div>
         ) : (
           <>
-            {posts.map((post) => {
-              const isLiked = likedSet.has(post.id);
-              const handle = post.username ?? post.author_id?.slice(0, 8);
-              const initials = (post.display_name ?? "?").slice(0, 2).toUpperCase();
-
-              return (
-                <article
-                  key={post.id}
-                  className="border-b border-white/5"
-                  onMouseEnter={() => recordView(post.id)}
-                >
-                  {/* Author */}
-                  <div className="flex items-center gap-3 px-4 py-3">
-                    <Link to="/u/$username" params={{ username: handle }}>
-                      {post.avatar_url ? (
-                        <img src={post.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center font-bold text-sm">
-                          {initials}
-                        </div>
-                      )}
-                    </Link>
-                    <div className="flex-1">
-                      <Link to="/u/$username" params={{ username: handle }}>
-                        <p className="font-bold text-sm">{post.display_name ?? handle}</p>
-                        <p className="text-xs text-muted-foreground">@{handle} · {timeAgo(post.created_at)}</p>
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Caption */}
-                  {post.content && (
-                    <p className="px-4 pb-3 text-sm leading-relaxed">{post.content}</p>
-                  )}
-
-                  {/* Media */}
-                  {post.media_urls?.length > 0 && (
-                    <div className={`grid gap-[2px] ${post.media_urls.length > 1 ? "grid-cols-2" : ""}`}>
-                      {post.media_urls.slice(0, 4).map((url, i) =>
-                        post.media_type === "video" ? (
-                          <video key={i} src={url} controls playsInline className="w-full aspect-square object-cover bg-black" />
-                        ) : (
-                          <img key={i} src={url} alt="" className="w-full aspect-square object-cover" loading="lazy" />
-                        )
-                      )}
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="px-4 pt-2 flex items-center gap-4">
-                    <button
-                      onClick={() => likeMutation.mutate({ postId: post.id, isLiked })}
-                      className="transition"
-                    >
-                      <Heart className={`w-6 h-6 transition ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
-                    </button>
-                    <Link to="/u/$username" params={{ username: handle }}>
-                      <MessageCircle className="w-6 h-6" />
-                    </Link>
-                    <button
-                      onClick={async () => {
-                        try {
-                          if (navigator.share) {
-                            await navigator.share({ url: `${window.location.origin}/u/${handle}` });
-                          } else {
-                            await navigator.clipboard.writeText(`${window.location.origin}/u/${handle}`);
-                            toast.success("Lien copié !");
-                          }
-                        } catch {}
-                      }}
-                    >
-                      <Share2 className="w-6 h-6" />
-                    </button>
-                    <button
-                      className="ml-auto"
-                      onClick={() => setSaved(s => ({ ...s, [post.id]: !s[post.id] }))}
-                    >
-                      <Bookmark className={`w-6 h-6 ${saved[post.id] ? "fill-foreground" : ""}`} />
-                    </button>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="px-4 pt-1 pb-3 space-y-0.5">
-                    <p className="text-sm font-bold">{post.likes_count} j'aime</p>
-                    {post.content && (
-                      <p className="text-sm">
-                        <Link to="/u/$username" params={{ username: handle }} className="font-bold mr-1">
-                          {handle}
-                        </Link>
-                        {post.content.slice(0, 120)}{post.content.length > 120 ? "..." : ""}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground pt-0.5">
-                      <span className="flex items-center gap-1">
-                        <Eye className="w-3.5 h-3.5" />
-                        {post.views_count} vues
-                      </span>
-                      {post.comments_count > 0 && (
-                        <span>{post.comments_count} commentaires</span>
-                      )}
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+            {posts.map((post) => (
+              <div key={post.id} ref={observePost} data-post-id={post.id}>
+                <PostCard post={toFeedPost(post)} />
+              </div>
+            ))}
 
             {activeQuery.hasNextPage && (
               <div ref={observerTarget} className="py-8 flex justify-center">
@@ -315,12 +220,4 @@ function FeedTab({ active, onClick, label }: { active: boolean; onClick: () => v
       {label}
     </button>
   );
-}
-
-function timeAgo(iso: string) {
-  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return `${s}s`;
-  if (s < 3600) return `${Math.floor(s / 60)}min`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h`;
-  return `${Math.floor(s / 86400)}j`;
 }
