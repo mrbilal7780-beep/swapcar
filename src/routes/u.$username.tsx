@@ -30,12 +30,23 @@ function PublicProfile() {
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile-by-username", username],
     queryFn: async () => {
-      const { data } = await supabase
+      // .eq() is parameterized (safe against special chars in username, unlike raw .or() string interpolation)
+      const { data: byUsername } = await supabase
         .from("profiles")
         .select("*")
-        .or(`username.eq.${username},user_id.eq.${username}`)
+        .eq("username", username)
         .maybeSingle();
-      return data;
+      if (byUsername) return byUsername;
+
+      // Fallback: the param can be a raw user_id when the author has no username set
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(username);
+      if (!isUuid) return null;
+      const { data: byId } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", username)
+        .maybeSingle();
+      return byId;
     },
   });
 

@@ -185,6 +185,7 @@ function PostThumb({ post }: { post: any }) {
   const [open, setOpen] = useState(false);
   const profile = post.profiles;
   const handle = profile?.username ?? profile?.user_id?.slice(0, 8);
+  const profileParam = profile?.username ?? profile?.user_id;
 
   return (
     <>
@@ -224,7 +225,7 @@ function PostThumb({ post }: { post: any }) {
             <div className="flex items-center gap-3 p-3 border-b border-white/5">
               <Link
                 to="/u/$username"
-                params={{ username: handle }}
+                params={{ username: profileParam }}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2"
               >
@@ -259,7 +260,7 @@ function PostThumb({ post }: { post: any }) {
               <span className="text-muted-foreground">❤️ {post.likes_count} · 💬 {post.comments_count}</span>
               <Link
                 to="/u/$username"
-                params={{ username: handle }}
+                params={{ username: profileParam }}
                 onClick={() => setOpen(false)}
                 className="text-primary text-xs font-semibold"
               >

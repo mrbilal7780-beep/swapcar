@@ -313,9 +313,10 @@ function EventDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 {attendees.map((a: any) => {
                   const p = a.profiles;
                   const handle = p?.username ?? a.user_id?.slice(0, 8);
+                  const profileParam = p?.username ?? a.user_id;
                   return (
                     <div key={a.user_id} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-                      <Link to="/u/$username" params={{ username: handle }} className="flex items-center gap-3 flex-1">
+                      <Link to="/u/$username" params={{ username: profileParam }} className="flex items-center gap-3 flex-1">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center font-bold text-sm flex-shrink-0">
                           {(p?.display_name ?? "?").slice(0, 2).toUpperCase()}
                         </div>

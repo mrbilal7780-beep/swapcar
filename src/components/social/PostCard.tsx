@@ -5,6 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Heart, MessageCircle, Share2, Trash2, Pencil, MoreHorizontal, Eye, X, Check } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type PostAuthor = {
   user_id: string;
@@ -43,6 +53,7 @@ export function PostCard({
   const [editing, setEditing] = useState(false);
   const [content, setContent] = useState(post.content);
   const [editText, setEditText] = useState(post.content ?? "");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const isOwner = user?.id === post.author_id;
 
@@ -77,6 +88,12 @@ export function PostCard({
       } else {
         await supabase.from("likes").insert({ post_id: post.id, user_id: user.id });
       }
+      // Recalcule le compteur depuis la source de vérité plutôt que de dépendre d'un trigger DB
+      const { count } = await supabase
+        .from("likes")
+        .select("*", { count: "exact", head: true })
+        .eq("post_id", post.id);
+      await supabase.from("posts").update({ likes_count: count ?? 0 }).eq("id", post.id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["post-liked", post.id] });
@@ -117,12 +134,14 @@ export function PostCard({
 
   const initials = (post.author?.display_name ?? post.author?.username ?? "?").slice(0, 2).toUpperCase();
   const handle = post.author?.username ?? post.author_id.slice(0, 8);
+  // Toujours l'identifiant complet pour le routing — un handle tronqué ne matchera jamais un UUID en base
+  const profileParam = post.author?.username ?? post.author_id;
 
   return (
     <article className="bg-background border-b border-white/5">
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-3">
-        <Link to="/u/$username" params={{ username: handle }} className="flex items-center gap-3 flex-1">
+        <Link to="/u/$username" params={{ username: profileParam }} className="flex items-center gap-3 flex-1">
           {post.author?.avatar_url ? (
             <img src={post.author.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
           ) : (
@@ -155,7 +174,7 @@ export function PostCard({
                   Modifier
                 </button>
                 <button
-                  onClick={() => { deletePost.mutate(); setShowMenu(false); }}
+                  onClick={() => { setConfirmDelete(true); setShowMenu(false); }}
                   className="flex items-center gap-2 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -228,7 +247,7 @@ export function PostCard({
         </button>
         <button
           onClick={async () => {
-            const url = `${window.location.origin}/u/${handle}`;
+            const url = `${window.location.origin}/u/${profileParam}`;
             try {
               if (navigator.share) {
                 await navigator.share({ title: "TORQUE", text: content ?? "", url });
@@ -274,6 +293,26 @@ export function PostCard({
           onSent={invalidatePosts}
         />
       )}
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette publication ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est définitive. La publication, ses likes et ses commentaires seront supprimés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletePost.mutate()}
+              className="bg-red-600 text-white hover:bg-red-600/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </article>
   );
 }
@@ -320,6 +359,12 @@ function Comments({
         content: commentText.trim(),
       });
       if (error) throw error;
+      // Recalcule le compteur depuis la source de vérité plutôt que de dépendre d'un trigger DB
+      const { count } = await supabase
+        .from("comments")
+        .select("*", { count: "exact", head: true })
+        .eq("post_id", postId);
+      await supabase.from("posts").update({ comments_count: count ?? 0 }).eq("id", postId);
     },
     onSuccess: () => {
       setCommentText("");

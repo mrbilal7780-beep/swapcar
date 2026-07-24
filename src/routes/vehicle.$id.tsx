@@ -44,6 +44,7 @@ function VehicleDetail() {
 
   const owner = vehicle.profiles;
   const ownerHandle = owner?.username ?? owner?.user_id?.slice(0, 8);
+  const ownerProfileParam = owner?.username ?? owner?.user_id;
 
   return (
     <PageShell>
@@ -121,7 +122,7 @@ function VehicleDetail() {
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Propriétaire</p>
               <Link
                 to="/u/$username"
-                params={{ username: ownerHandle! }}
+                params={{ username: ownerProfileParam! }}
                 className="flex items-center gap-3 hover:opacity-80 transition"
               >
                 {owner.avatar_url ? (

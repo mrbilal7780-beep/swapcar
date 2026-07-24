@@ -105,15 +105,22 @@ function FeedPage() {
 
   // Incrémenter les vues — déclenché quand le post entre réellement dans le viewport
   // (fonctionne aussi bien au scroll tactile qu'à la souris, contrairement à onMouseEnter)
-  const viewedRef = useRef<Set<string>>(new Set());
+  const ownPostIds = new Set(posts.filter(p => p.author_id === user?.id).map(p => p.id));
+  const SESSION_KEY = "torque-viewed-posts";
+  const viewedRef = useRef<Set<string>>(
+    new Set(JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? "[]"))
+  );
   const recordView = useCallback(async (postId: string) => {
-    if (!user || viewedRef.current.has(postId)) return;
+    // On ne compte pas les vues de l'auteur sur son propre post, et on ne recompte pas
+    // deux fois le même post pendant la session (le serveur dédoublonne aussi côté RPC).
+    if (!user || viewedRef.current.has(postId) || ownPostIds.has(postId)) return;
     viewedRef.current.add(postId);
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify([...viewedRef.current]));
     await supabase.rpc("increment_post_view", {
       post_uuid: postId,
       viewer_uuid: user.id,
     });
-  }, [user]);
+  }, [user, ownPostIds]);
 
   const viewObserver = useRef<IntersectionObserver | null>(null);
   useEffect(() => {
