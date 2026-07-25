@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CommentsSheet } from "@/components/social/CommentsSheet";
 
 type PostAuthor = {
   user_id: string;
@@ -48,7 +49,6 @@ export function PostCard({
   const { user } = useAuth();
   const qc = useQueryClient();
   const [showComments, setShowComments] = useState(defaultShowComments);
-  const [commentText, setCommentText] = useState("");
   const [showMenu, setShowMenu] = useState(false);
   const [editing, setEditing] = useState(false);
   const [content, setContent] = useState(post.content);
@@ -284,14 +284,8 @@ export function PostCard({
         )}
       </div>
 
-      {/* Comments */}
       {showComments && (
-        <Comments
-          postId={post.id}
-          commentText={commentText}
-          setCommentText={setCommentText}
-          onSent={invalidatePosts}
-        />
+        <CommentsSheet postId={post.id} onClose={() => setShowComments(false)} onSent={invalidatePosts} />
       )}
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
@@ -314,100 +308,6 @@ export function PostCard({
         </AlertDialogContent>
       </AlertDialog>
     </article>
-  );
-}
-
-function Comments({
-  postId,
-  commentText,
-  setCommentText,
-  onSent,
-}: {
-  postId: string;
-  commentText: string;
-  setCommentText: (s: string) => void;
-  onSent: () => void;
-}) {
-  const { user } = useAuth();
-  const qc = useQueryClient();
-
-  const { data: comments = [] } = useQuery({
-    queryKey: ["comments", postId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("comments")
-        .select("*")
-        .eq("post_id", postId)
-        .order("created_at", { ascending: true });
-      if (!data?.length) return [];
-      const ids = [...new Set(data.map((c) => c.user_id))];
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, username, avatar_url")
-        .in("user_id", ids);
-      const map = new Map(profs?.map((p) => [p.user_id, p]) ?? []);
-      return data.map((c) => ({ ...c, author: map.get(c.user_id) ?? null }));
-    },
-  });
-
-  const send = useMutation({
-    mutationFn: async () => {
-      if (!user || !commentText.trim()) return;
-      const { error } = await supabase.from("comments").insert({
-        post_id: postId,
-        user_id: user.id,
-        content: commentText.trim(),
-      });
-      if (error) throw error;
-      // Recalcule le compteur depuis la source de vérité plutôt que de dépendre d'un trigger DB
-      const { count } = await supabase
-        .from("comments")
-        .select("*", { count: "exact", head: true })
-        .eq("post_id", postId);
-      await supabase.from("posts").update({ comments_count: count ?? 0 }).eq("id", postId);
-    },
-    onSuccess: () => {
-      setCommentText("");
-      qc.invalidateQueries({ queryKey: ["comments", postId] });
-      onSent();
-    },
-    onError: (e: any) => toast.error("Erreur : " + e.message),
-  });
-
-  return (
-    <div className="border-t border-white/5 px-4 py-3 space-y-3 bg-black/20">
-      {comments.map((c: any) => (
-        <div key={c.id} className="flex gap-3 text-sm">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center text-xs font-bold shrink-0">
-            {(c.author?.display_name ?? "?").slice(0, 2).toUpperCase()}
-          </div>
-          <div className="flex-1">
-            <span className="font-semibold text-xs">{c.author?.display_name ?? "Membre"} </span>
-            <span className="text-sm">{c.content}</span>
-          </div>
-        </div>
-      ))}
-      {user && (
-        <form
-          onSubmit={(e) => { e.preventDefault(); send.mutate(); }}
-          className="flex gap-2 pt-1"
-        >
-          <input
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Ajouter un commentaire…"
-            className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-sm focus:outline-none focus:border-primary"
-          />
-          <button
-            type="submit"
-            disabled={!commentText.trim() || send.isPending}
-            className="bg-primary text-primary-foreground px-4 py-1.5 rounded-full font-semibold disabled:opacity-50 text-sm"
-          >
-            →
-          </button>
-        </form>
-      )}
-    </div>
   );
 }
 

@@ -1,9 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
-import { Plus, Car, ArrowLeft } from "lucide-react";
+import { Plus, Car, ArrowLeft, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/garage")({
   head: () => ({ meta: [{ title: "Garage — TORQUE" }] }),
@@ -88,36 +100,104 @@ function GaragePage() {
 
         <div className="space-y-3">
           {vehicles.map((v: any) => (
-            <Link
-              key={v.id}
-              to="/vehicle/$id"
-              params={{ id: v.id }}
-              className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/30 transition"
-            >
-              {v.photos?.[0] ? (
-                <img src={v.photos[0]} alt="" className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
-              ) : (
-                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
-                  <Car className="w-8 h-8 text-primary/40" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-bold truncate">{v.make} {v.model}</p>
-                <p className="text-sm text-muted-foreground">{v.year} · {v.fuel}</p>
-                {v.mileage && (
-                  <p className="text-xs text-muted-foreground">{Number(v.mileage).toLocaleString("fr-FR")} km</p>
-                )}
-              </div>
-              {v.build_score > 0 && (
-                <div className="text-right flex-shrink-0">
-                  <div className="text-lg font-black text-primary">{v.build_score}</div>
-                  <div className="text-xs text-muted-foreground">score</div>
-                </div>
-              )}
-            </Link>
+            <VehicleRow key={v.id} vehicle={v} />
           ))}
         </div>
       </div>
     </PageShell>
+  );
+}
+
+function VehicleRow({ vehicle: v }: { vehicle: any }) {
+  const qc = useQueryClient();
+  const [showMenu, setShowMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const deleteVehicle = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("vehicles").delete().eq("id", v.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Véhicule supprimé");
+      qc.invalidateQueries({ queryKey: ["my-vehicles"] });
+    },
+    onError: () => toast.error("Erreur lors de la suppression"),
+  });
+
+  return (
+    <div className="relative flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/30 transition">
+      <Link to="/vehicle/$id" params={{ id: v.id }} className="flex items-center gap-4 flex-1 min-w-0">
+        {v.photos?.[0] ? (
+          <img src={v.photos[0]} alt="" className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+        ) : (
+          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
+            <Car className="w-8 h-8 text-primary/40" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="font-bold truncate">{v.make} {v.model}</p>
+          <p className="text-sm text-muted-foreground">{v.year} · {v.fuel}</p>
+          {v.mileage && (
+            <p className="text-xs text-muted-foreground">{Number(v.mileage).toLocaleString("fr-FR")} km</p>
+          )}
+        </div>
+        {v.build_score > 0 && (
+          <div className="text-right flex-shrink-0">
+            <div className="text-lg font-black text-primary">{v.build_score}</div>
+            <div className="text-xs text-muted-foreground">score</div>
+          </div>
+        )}
+      </Link>
+
+      <div className="relative flex-shrink-0">
+        <button
+          onClick={() => setShowMenu((s) => !s)}
+          className="p-2 hover:bg-white/10 rounded-full transition"
+        >
+          <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+        </button>
+        {showMenu && (
+          <div className="absolute right-0 top-10 bg-card border border-white/10 rounded-xl shadow-xl z-10 overflow-hidden min-w-[160px]">
+            <Link
+              to="/add-vehicle"
+              search={{ edit: v.id }}
+              onClick={() => setShowMenu(false)}
+              className="flex items-center gap-2 w-full px-4 py-3 text-sm hover:bg-white/5 transition"
+            >
+              <Pencil className="w-4 h-4" />
+              Modifier
+            </Link>
+            <button
+              onClick={() => { setConfirmDelete(true); setShowMenu(false); }}
+              className="flex items-center gap-2 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition"
+            >
+              <Trash2 className="w-4 h-4" />
+              Supprimer
+            </button>
+          </div>
+        )}
+      </div>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce véhicule ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est définitive. {v.make} {v.model} sera retiré de ton garage.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteVehicle.mutate()}
+              className="bg-red-600 text-white hover:bg-red-600/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }

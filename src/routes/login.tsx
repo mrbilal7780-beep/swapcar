@@ -5,7 +5,7 @@ import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Eye, EyeOff, Mail, ArrowLeft } from "lucide-react";
-import heroCar from "@/assets/hero-car.jpg";
+import { VideoBackground } from "@/components/VideoBackground";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Connexion — TORQUE" }] }),
@@ -85,20 +85,9 @@ function LoginPage() {
     <div className="min-h-screen relative text-foreground flex flex-col overflow-hidden bg-background">
       <style>{`
         html { padding-top: max(0px, env(safe-area-inset-top)); padding-bottom: max(0px, env(safe-area-inset-bottom)); padding-left: max(0px, env(safe-area-inset-left)); padding-right: max(0px, env(safe-area-inset-right)); }
-        @keyframes torque-kenburns { 0% { transform: scale(1.08) translate(0, 0); } 100% { transform: scale(1.22) translate(-1.5%, -1.5%); } }
-        .torque-bg { animation: torque-kenburns 20s ease-in-out infinite alternate; }
       `}</style>
 
-      {/* Fond cinématique */}
-      <div className="absolute inset-0 z-0">
-        <img
-          src={heroCar}
-          alt=""
-          className="torque-bg w-full h-full object-cover opacity-40"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/85 to-background" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/40" />
-      </div>
+      <VideoBackground />
 
       <div className="relative z-10 flex-1 flex flex-col justify-center px-6 pt-8 pb-6 sm:pt-0">
         <div className="max-w-sm mx-auto w-full">

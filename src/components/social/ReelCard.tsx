@@ -57,6 +57,7 @@ export function ReelCard({
     },
   });
 
+  const likedKey = ["post-liked", post.id, user?.id];
   const toggleLike = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Connexion requise");
@@ -71,8 +72,15 @@ export function ReelCard({
         .eq("post_id", post.id);
       await supabase.from("posts").update({ likes_count: count ?? 0 }).eq("id", post.id);
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["post-liked", post.id] });
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: likedKey });
+      const previous = qc.getQueryData(likedKey);
+      qc.setQueryData(likedKey, !liked);
+      return { previous };
+    },
+    onError: (_e, _vars, context) => qc.setQueryData(likedKey, context?.previous),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: likedKey });
       invalidatePosts();
     },
   });
@@ -91,6 +99,7 @@ export function ReelCard({
     },
   });
 
+  const followKey = ["is-following", post.author_id, user?.id];
   const toggleFollow = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Connexion requise");
@@ -100,8 +109,19 @@ export function ReelCard({
         await supabase.from("followings").insert({ follower_id: user.id, following_id: post.author_id });
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["is-following", post.author_id] }),
-    onError: (e: any) => toast.error(e.message ?? "Erreur"),
+    // Bascule l'état affiché immédiatement — pas d'attente réseau, essentiel dans un flux
+    // vertical rapide comme les reels. On revient en arrière seulement en cas d'erreur.
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: followKey });
+      const previous = qc.getQueryData(followKey);
+      qc.setQueryData(followKey, !following);
+      return { previous };
+    },
+    onError: (e: any, _vars, context) => {
+      qc.setQueryData(followKey, context?.previous);
+      toast.error(e.message ?? "Erreur");
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: followKey }),
   });
 
   return (
