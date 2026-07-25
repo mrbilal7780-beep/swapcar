@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
+import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
@@ -7,7 +9,8 @@ import { toast } from "sonner";
 import { ArrowLeft, Camera, X } from "lucide-react";
 
 export const Route = createFileRoute("/add-vehicle")({
-  head: () => ({ meta: [{ title: "Ajouter un véhicule — TORQUE" }] }),
+  head: () => ({ meta: [{ title: "Véhicule — TORQUE" }] }),
+  validateSearch: z.object({ edit: z.string().optional() }),
   component: () => <RequireAuth><AddVehicle /></RequireAuth>,
 });
 
@@ -17,7 +20,18 @@ const FUELS = ["Essence","Diesel","Hybride","Électrique","GPL"];
 function AddVehicle() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { edit: editId } = Route.useSearch();
+  const isEditing = !!editId;
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const { data: existing, isLoading: loadingExisting } = useQuery({
+    queryKey: ["vehicle", editId],
+    enabled: isEditing,
+    queryFn: async () => {
+      const { data } = await supabase.from("vehicles").select("*").eq("id", editId!).maybeSingle();
+      return data;
+    },
+  });
 
   const [form, setForm] = useState({
     make: "",
@@ -29,15 +43,34 @@ function AddVehicle() {
     price: "",
     description: "",
   });
+  // Photos déjà en ligne (édition) — distinctes des nouvelles à uploader
+  const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [photos, setPhotos] = useState<{ file: File; url: string }[]>([]);
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (!existing) return;
+    setForm({
+      make: existing.make ?? "",
+      model: existing.model ?? "",
+      year: String(existing.year ?? new Date().getFullYear()),
+      vin: existing.vin ?? "",
+      fuel: existing.fuel ?? "Essence",
+      mileage: existing.mileage ? String(existing.mileage) : "",
+      price: existing.price ? String(existing.price) : "",
+      description: existing.description ?? "",
+    });
+    setExistingPhotos(existing.photos ?? []);
+  }, [existing]);
+
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const totalPhotoCount = existingPhotos.length + photos.length;
 
   const handlePhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     const newPhotos = files.map(f => ({ file: f, url: URL.createObjectURL(f) }));
-    setPhotos(p => [...p, ...newPhotos].slice(0, 6));
+    setPhotos(p => [...p, ...newPhotos].slice(0, 6 - existingPhotos.length));
   };
 
   const handleSubmit = async () => {
@@ -47,8 +80,8 @@ function AddVehicle() {
     }
     setSaving(true);
 
-    // Upload photos
-    const photoUrls: string[] = [];
+    // Upload des nouvelles photos
+    const newPhotoUrls: string[] = [];
     for (const p of photos) {
       const ext = p.file.name.split(".").pop();
       const path = `${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -57,12 +90,11 @@ function AddVehicle() {
         .upload(path, p.file, { upsert: true });
       if (!error) {
         const { data } = supabase.storage.from("vehicle-photos").getPublicUrl(path);
-        photoUrls.push(data.publicUrl);
+        newPhotoUrls.push(data.publicUrl);
       }
     }
 
-    const { error } = await supabase.from("vehicles").insert({
-      owner_id: user!.id,
+    const payload = {
       make: form.make,
       model: form.model,
       year: parseInt(form.year) || new Date().getFullYear(),
@@ -70,10 +102,17 @@ function AddVehicle() {
       fuel: form.fuel,
       mileage: parseInt(form.mileage) || null,
       price: parseFloat(form.price) || null,
-      photos: photoUrls,
-      build_score: 0,
-      status: "published",
-    });
+      photos: [...existingPhotos, ...newPhotoUrls],
+    };
+
+    const { error } = isEditing
+      ? await supabase.from("vehicles").update(payload).eq("id", editId!)
+      : await supabase.from("vehicles").insert({
+          ...payload,
+          owner_id: user!.id,
+          build_score: 0,
+          status: "published",
+        });
 
     setSaving(false);
 
@@ -82,9 +121,19 @@ function AddVehicle() {
       return;
     }
 
-    toast.success("Véhicule ajouté !");
-    navigate({ to: "/profile" } as any);
+    toast.success(isEditing ? "Véhicule modifié !" : "Véhicule ajouté !");
+    navigate(isEditing ? { to: "/vehicle/$id", params: { id: editId! } } : { to: "/profile" } as any);
   };
+
+  if (isEditing && loadingExisting) {
+    return (
+      <PageShell>
+        <div className="flex justify-center py-20">
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell>
@@ -93,7 +142,7 @@ function AddVehicle() {
           <button onClick={() => navigate({ to: "/profile" } as any)} className="p-2 -ml-2 hover:bg-white/5 rounded-lg transition">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-bold">Ajouter un véhicule</h1>
+          <h1 className="text-lg font-bold">{isEditing ? "Modifier le véhicule" : "Ajouter un véhicule"}</h1>
         </div>
 
         <div className="space-y-4 pb-8">
@@ -101,11 +150,22 @@ function AddVehicle() {
           {/* Photos */}
           <div>
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Photos ({photos.length}/6)
+              Photos ({totalPhotoCount}/6)
             </label>
             <div className="grid grid-cols-3 gap-2">
+              {existingPhotos.map((url, i) => (
+                <div key={`existing-${i}`} className="relative aspect-square rounded-xl overflow-hidden">
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setExistingPhotos(existingPhotos.filter((_, j) => j !== i))}
+                    className="absolute top-1 right-1 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
               {photos.map((p, i) => (
-                <div key={i} className="relative aspect-square rounded-xl overflow-hidden">
+                <div key={`new-${i}`} className="relative aspect-square rounded-xl overflow-hidden">
                   <img src={p.url} alt="" className="w-full h-full object-cover" />
                   <button
                     onClick={() => setPhotos(photos.filter((_, j) => j !== i))}
@@ -115,7 +175,7 @@ function AddVehicle() {
                   </button>
                 </div>
               ))}
-              {photos.length < 6 && (
+              {totalPhotoCount < 6 && (
                 <button
                   onClick={() => fileRef.current?.click()}
                   className="aspect-square rounded-xl bg-white/5 border border-white/10 border-dashed flex flex-col items-center justify-center gap-1 hover:bg-white/10 transition"
@@ -189,7 +249,7 @@ function AddVehicle() {
             disabled={saving}
             className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground py-3 rounded-xl font-semibold transition"
           >
-            {saving ? "Enregistrement..." : "Ajouter au garage"}
+            {saving ? "Enregistrement..." : isEditing ? "Enregistrer les modifications" : "Ajouter au garage"}
           </button>
 
         </div>

@@ -3,17 +3,27 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
-import { Send, ArrowLeft } from "lucide-react";
+import { Send, ArrowLeft, SquarePen } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { z } from "zod";
 
 export const Route = createFileRoute("/chat")({
   head: () => ({ meta: [{ title: "Messages — TORQUE" }] }),
+  validateSearch: z.object({ with: z.string().optional() }),
   component: () => <RequireAuth><ChatPage /></RequireAuth>,
 });
 
 function ChatPage() {
   const { user } = useAuth();
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const { with: withUserId } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  // Un lien "Message" depuis un profil (?with=user_id) ouvre directement la conversation,
+  // même si aucun message n'a encore été échangé avec cette personne.
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(withUserId ?? null);
+
+  useEffect(() => {
+    if (withUserId) setSelectedUserId(withUserId);
+  }, [withUserId]);
 
   // Liste des conversations (personnes avec qui on a échangé)
   const { data: conversations = [] } = useQuery({
@@ -57,7 +67,10 @@ function ChatPage() {
       <Conversation
         myId={user!.id}
         otherId={selectedUserId}
-        onBack={() => setSelectedUserId(null)}
+        onBack={() => {
+          setSelectedUserId(null);
+          navigate({ search: {} });
+        }}
       />
     );
   }
@@ -65,15 +78,22 @@ function ChatPage() {
   return (
     <PageShell>
       <div className="max-w-2xl mx-auto">
-        <div className="px-4 py-3 border-b border-white/5">
+        <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
           <h1 className="text-lg font-bold">Messages</h1>
+          <Link
+            to={"/search-users" as any}
+            className="p-2 hover:bg-white/5 rounded-full transition"
+            aria-label="Nouveau message"
+          >
+            <SquarePen className="w-5 h-5" />
+          </Link>
         </div>
 
         {conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 px-8 text-center gap-3">
             <p className="text-lg font-bold">Aucun message</p>
             <p className="text-sm text-muted-foreground">
-              Abonne-toi à des membres pour leur envoyer des messages
+              Trouve des membres et envoie-leur le premier message
             </p>
             <Link
               to={"/search-users" as any}

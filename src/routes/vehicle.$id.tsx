@@ -1,8 +1,21 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
-import { ArrowLeft, Car, Calendar, Gauge, Fuel, Hash } from "lucide-react";
+import { ArrowLeft, Car, Calendar, Gauge, Fuel, Hash, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/vehicle/$id")({
   head: () => ({ meta: [{ title: "Véhicule — TORQUE" }] }),
@@ -11,6 +24,11 @@ export const Route = createFileRoute("/vehicle/$id")({
 
 function VehicleDetail() {
   const { id } = Route.useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [showMenu, setShowMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: vehicle, isLoading } = useQuery({
     queryKey: ["vehicle", id],
@@ -22,6 +40,19 @@ function VehicleDetail() {
         .maybeSingle();
       return data;
     },
+  });
+
+  const deleteVehicle = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("vehicles").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Véhicule supprimé");
+      qc.invalidateQueries({ queryKey: ["my-vehicles"] });
+      navigate({ to: "/garage" } as any);
+    },
+    onError: () => toast.error("Erreur lors de la suppression"),
   });
 
   if (isLoading) {
@@ -45,18 +76,50 @@ function VehicleDetail() {
   const owner = vehicle.profiles;
   const ownerHandle = owner?.username ?? owner?.user_id?.slice(0, 8);
   const ownerProfileParam = owner?.username ?? owner?.user_id;
+  const isOwner = user?.id === vehicle.owner_id;
 
   return (
     <PageShell>
       <div className="max-w-2xl mx-auto">
         {/* Back */}
-        <div className="px-4 py-3">
+        <div className="px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => window.history.back()}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition"
           >
             <ArrowLeft className="w-4 h-4" /> Retour
           </button>
+
+          {isOwner && (
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(s => !s)}
+                className="p-2 hover:bg-white/5 rounded-full transition"
+              >
+                <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+              </button>
+              {showMenu && (
+                <div className="absolute right-0 top-10 bg-card border border-white/10 rounded-xl shadow-xl z-10 overflow-hidden min-w-[160px]">
+                  <Link
+                    to="/add-vehicle"
+                    search={{ edit: id }}
+                    onClick={() => setShowMenu(false)}
+                    className="flex items-center gap-2 w-full px-4 py-3 text-sm hover:bg-white/5 transition"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Modifier
+                  </Link>
+                  <button
+                    onClick={() => { setConfirmDelete(true); setShowMenu(false); }}
+                    className="flex items-center gap-2 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Supprimer
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Photos */}
@@ -142,6 +205,26 @@ function VehicleDetail() {
           )}
         </div>
       </div>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce véhicule ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est définitive. {vehicle.make} {vehicle.model} sera retiré de ton garage.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteVehicle.mutate()}
+              className="bg-red-600 text-white hover:bg-red-600/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageShell>
   );
 }

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
-import { Search, ArrowLeft, UserPlus, UserCheck } from "lucide-react";
+import { Search, ArrowLeft, UserPlus, UserCheck, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/search-users")({
@@ -97,6 +97,14 @@ function SearchUsers() {
                   <p className="font-semibold text-sm truncate">{p.username ?? p.display_name}</p>
                   {p.display_name && p.username && <p className="text-xs text-muted-foreground truncate">{p.display_name}</p>}
                 </div>
+                <Link
+                  to="/chat"
+                  search={{ with: p.user_id }}
+                  className="p-2 rounded-full hover:bg-white/5 transition flex-shrink-0"
+                  aria-label="Envoyer un message"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </Link>
                 <button
                   onClick={() => isFollowing ? unfollow.mutate(p.user_id) : follow.mutate(p.user_id)}
                   disabled={follow.isPending || unfollow.isPending}

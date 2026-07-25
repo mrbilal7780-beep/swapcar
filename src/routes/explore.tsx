@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
-import { Search, X, Grid3x3, Users } from "lucide-react";
+import { Search, X, Grid3x3, Users, Compass } from "lucide-react";
 
 export const Route = createFileRoute("/explore")({
   head: () => ({ meta: [{ title: "Explorer — TORQUE" }] }),
@@ -80,23 +80,32 @@ function Explore() {
 
         {/* Barre de recherche */}
         <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-white/5 px-4 py-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Rechercher des posts, membres..."
-              className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:border-primary"
-            />
-            {query && (
-              <button
-                onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
-              >
-                <X className="w-4 h-4 text-muted-foreground" />
-              </button>
-            )}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Rechercher des posts, membres..."
+                className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:border-primary"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+            <Link
+              to={"/matches" as any}
+              className="flex-shrink-0 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition"
+              aria-label="Communauté"
+            >
+              <Compass className="w-4 h-4" />
+            </Link>
           </div>
 
           {/* Tabs */}

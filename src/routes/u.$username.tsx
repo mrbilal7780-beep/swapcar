@@ -197,6 +197,7 @@ function PublicProfile() {
             </button>
             <Link
               to="/chat"
+              search={{ with: profileUserId }}
               className="flex-1 py-2 rounded-lg text-sm font-semibold text-center bg-white/5 border border-white/10 hover:bg-white/10 transition"
             >
               Message

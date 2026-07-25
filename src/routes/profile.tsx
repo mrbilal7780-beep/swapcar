@@ -15,7 +15,7 @@ export const Route = createFileRoute("/profile")({
   component: () => <RequireAuth><Profile /></RequireAuth>,
 });
 
-type Tab = "posts" | "reels" | "garage";
+type Tab = "posts" | "reels";
 type Modal = "followers" | "following" | null;
 
 function Profile() {
@@ -45,18 +45,6 @@ function Profile() {
         .from("posts")
         .select("*")
         .eq("author_id", userId)
-        .order("created_at", { ascending: false });
-      return data ?? [];
-    },
-  });
-
-  const { data: myCars = [] } = useQuery({
-    queryKey: ["my-vehicles", userId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("vehicles")
-        .select("*")
-        .eq("owner_id", userId)
         .order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -197,7 +185,12 @@ function Profile() {
         <div className="grid grid-cols-3 border-t border-white/10">
           <TabButton active={tab === "posts"} onClick={() => setTab("posts")} icon={Grid3x3} />
           <TabButton active={tab === "reels"} onClick={() => setTab("reels")} icon={Clapperboard} />
-          <TabButton active={tab === "garage"} onClick={() => setTab("garage")} icon={Car} />
+          <Link
+            to="/garage"
+            className="flex items-center justify-center py-3 border-t-2 border-transparent text-muted-foreground hover:text-foreground transition"
+          >
+            <Car className="w-6 h-6" />
+          </Link>
         </div>
 
         {/* Posts */}
@@ -226,37 +219,6 @@ function Profile() {
               ))}
             </div>
           )
-        )}
-
-        {/* Garage */}
-        {tab === "garage" && (
-          <div className="px-4 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold">Mon garage</h2>
-              <Link to="/add-vehicle" className="text-sm bg-primary text-primary-foreground px-4 py-1.5 rounded-full font-semibold">
-                + Ajouter
-              </Link>
-            </div>
-            {myCars.length === 0 ? <EmptyState text="Aucun véhicule" /> : (
-              <div className="grid grid-cols-2 gap-3">
-                {myCars.map((c: any) => (
-                  <div key={c.id} className="rounded-2xl overflow-hidden bg-white/5 border border-white/10">
-                    {c.photos?.[0] ? (
-                      <img src={c.photos[0]} alt="" className="w-full aspect-[4/3] object-cover" />
-                    ) : (
-                      <div className="w-full aspect-[4/3] bg-secondary flex items-center justify-center">
-                        <Car className="w-8 h-8 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="p-3">
-                      <p className="font-bold text-sm">{c.make} {c.model}</p>
-                      <p className="text-xs text-muted-foreground">{c.year}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         )}
 
         {/* Déconnexion */}
