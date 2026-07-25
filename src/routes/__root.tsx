@@ -79,19 +79,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" },
-      { title: "TORQUE — Premium Automotive Social Network" },
-      { name: "description", content: "TORQUE: The world's premium automotive social network for car enthusiasts. Instagram + Threads + TikTok + Strava for cars." },
+      { title: "TORQUE — Réseau Social Automobile Premium" },
+      { name: "description", content: "TORQUE : le réseau social automobile premium pour les passionnés. Partage ton garage, tes sorties, et connecte-toi à la communauté." },
       { name: "theme-color", content: "#0a0a0a" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "TORQUE" },
-      { property: "og:title", content: "TORQUE — Premium Automotive Social Network" },
-      { property: "og:description", content: "The world's premium automotive social network. Connect, share, discover." },
+      { property: "og:title", content: "TORQUE — Réseau Social Automobile Premium" },
+      { property: "og:description", content: "Le réseau social automobile premium. Partage, découvre, connecte-toi." },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "TORQUE" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "TORQUE" },
-      { name: "twitter:description", content: "The world's premium automotive social network." },
+      { name: "twitter:description", content: "Le réseau social automobile premium." },
     ],
     links: [
       {
@@ -112,8 +113,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@context": "https://schema.org",
           "@type": "Organization",
           name: "TORQUE",
-          url: "https://torque.app",
-          description: "The world's premium automotive social network.",
+          url: "https://swapcar.mr-bilal-7780.workers.dev",
+          description: "Le réseau social automobile premium.",
         }),
       },
     ],
@@ -126,7 +127,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <head>
         <HeadContent />
       </head>

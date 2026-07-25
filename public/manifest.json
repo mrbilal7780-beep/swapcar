@@ -1,0 +1,36 @@
+{
+  "name": "TORQUE — Réseau Social Automobile Premium",
+  "short_name": "TORQUE",
+  "description": "Le réseau social automobile premium : partage ton garage, tes sorties et rencontre la communauté.",
+  "start_url": "/feed",
+  "id": "/feed",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
+  "orientation": "portrait",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "lang": "fr",
+  "dir": "ltr",
+  "categories": ["social", "lifestyle", "automotive"],
+  "icons": [
+    {
+      "src": "/torque-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/torque-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/torque-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
