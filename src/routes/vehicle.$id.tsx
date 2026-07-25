@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tilt3D } from "@/components/Tilt3D";
 
 export const Route = createFileRoute("/vehicle/$id")({
   head: () => ({ meta: [{ title: "Véhicule — TORQUE" }] }),
@@ -29,6 +30,7 @@ function VehicleDetail() {
   const qc = useQueryClient();
   const [showMenu, setShowMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [activePhoto, setActivePhoto] = useState(0);
 
   const { data: vehicle, isLoading } = useQuery({
     queryKey: ["vehicle", id],
@@ -122,15 +124,35 @@ function VehicleDetail() {
           )}
         </div>
 
-        {/* Photos */}
+        {/* Showroom — photo héro interactive (tilt + reflet) et vignettes */}
         {vehicle.photos?.length > 0 ? (
-          <div className={`grid gap-[2px] ${vehicle.photos.length > 1 ? "grid-cols-2" : ""}`}>
-            {vehicle.photos.slice(0, 4).map((url: string, i: number) => (
-              <img key={i} src={url} alt="" className="w-full aspect-square object-cover" />
-            ))}
+          <div className="px-4">
+            <Tilt3D className="rounded-3xl overflow-hidden bg-black">
+              <img
+                src={vehicle.photos[activePhoto]}
+                alt=""
+                className="w-full aspect-[4/3] object-cover select-none"
+                draggable={false}
+              />
+            </Tilt3D>
+            {vehicle.photos.length > 1 && (
+              <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
+                {vehicle.photos.map((url: string, i: number) => (
+                  <button
+                    key={i}
+                    onClick={() => setActivePhoto(i)}
+                    className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition ${
+                      i === activePhoto ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
-          <div className="w-full h-48 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+          <div className="mx-4 rounded-3xl w-auto h-48 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
             <Car className="w-16 h-16 text-primary/30" />
           </div>
         )}
