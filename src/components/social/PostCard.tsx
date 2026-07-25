@@ -80,6 +80,8 @@ export function PostCard({
     },
   });
 
+  const [likePopKey, setLikePopKey] = useState(0);
+  const likedKey = ["post-liked", post.id, user?.id];
   const toggleLike = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Connexion requise");
@@ -95,8 +97,16 @@ export function PostCard({
         .eq("post_id", post.id);
       await supabase.from("posts").update({ likes_count: count ?? 0 }).eq("id", post.id);
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["post-liked", post.id] });
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: likedKey });
+      const previous = qc.getQueryData(likedKey);
+      if (!liked) setLikePopKey((k) => k + 1);
+      qc.setQueryData(likedKey, !liked);
+      return { previous };
+    },
+    onError: (_e, _vars, context) => qc.setQueryData(likedKey, context?.previous),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: likedKey });
       invalidatePosts();
     },
   });
@@ -240,7 +250,10 @@ export function PostCard({
           disabled={!user || toggleLike.isPending}
           className="flex items-center gap-1.5 transition"
         >
-          <Heart className={`w-6 h-6 transition ${liked ? "fill-red-500 text-red-500" : "text-foreground"}`} />
+          <Heart
+            key={likePopKey}
+            className={`w-6 h-6 transition ${liked ? "fill-red-500 text-red-500 torque-pop" : "text-foreground"}`}
+          />
         </button>
         <button onClick={() => setShowComments(s => !s)} className="flex items-center gap-1.5">
           <MessageCircle className="w-6 h-6" />

@@ -194,6 +194,46 @@ textarea {
   color: transparent;
 }
 
+/* Street-racing accents — utilisés sur les surfaces héro (login, headers, actions clés) */
+
+@utility racing-stripes {
+  position: relative;
+  isolation: isolate;
+}
+.racing-stripes::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: repeating-linear-gradient(
+    115deg,
+    var(--primary) 0px,
+    var(--primary) 3px,
+    transparent 3px,
+    transparent 46px
+  );
+  opacity: 0.12;
+  mask-image: linear-gradient(to bottom, black, transparent 70%);
+}
+
+@utility glow-pulse {
+  animation: torque-glow-pulse 2.4s ease-in-out infinite;
+}
+@keyframes torque-glow-pulse {
+  0%, 100% { box-shadow: 0 0 24px oklch(0.62 0.21 255 / 0.35); }
+  50% { box-shadow: 0 0 40px oklch(0.62 0.21 255 / 0.6); }
+}
+
+@keyframes torque-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  60% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+.torque-pop {
+  animation: torque-pop 0.35s cubic-bezier(0.17, 0.89, 0.32, 1.49);
+}
+
 @layer base {
   .input {
     width: 100%;

@@ -100,11 +100,11 @@ function LoginPage() {
             />
           ) : (
             <>
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/70 mb-6 shadow-xl shadow-primary/20">
+              <div className="racing-stripes text-center mb-8 py-2">
+                <div className="glow-pulse inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/70 mb-6">
                   <span className="text-4xl font-black">T</span>
                 </div>
-                <h1 className="text-4xl font-black tracking-tight">TORQUE</h1>
+                <h1 className="text-4xl font-black tracking-tight text-gradient">TORQUE</h1>
                 <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3">
                   Le réseau social automobile premium
                 </p>

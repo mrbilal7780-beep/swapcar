@@ -27,7 +27,7 @@ export function BottomNav() {
                 "flex-1 py-3 px-2 flex flex-col items-center gap-0.5 text-xs font-semibold text-primary transition",
             }}
           >
-            <Icon className="w-6 h-6" />
+            <Icon className="w-6 h-6 [.text-primary_&]:drop-shadow-[0_0_8px_oklch(0.62_0.21_255_/_0.7)]" />
             <span className="text-[10px]">{label}</span>
           </Link>
         ))}

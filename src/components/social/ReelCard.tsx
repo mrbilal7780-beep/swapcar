@@ -24,6 +24,7 @@ export function ReelCard({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showComments, setShowComments] = useState(false);
 
+  const [likePopKey, setLikePopKey] = useState(0);
   const isOwner = user?.id === post.author_id;
   const initials = (post.author?.display_name ?? post.author?.username ?? "?").slice(0, 2).toUpperCase();
   const handle = post.author?.username ?? post.author_id.slice(0, 8);
@@ -75,6 +76,7 @@ export function ReelCard({
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: likedKey });
       const previous = qc.getQueryData(likedKey);
+      if (!liked) setLikePopKey((k) => k + 1);
       qc.setQueryData(likedKey, !liked);
       return { previous };
     },
@@ -124,6 +126,13 @@ export function ReelCard({
     onSettled: () => qc.invalidateQueries({ queryKey: followKey }),
   });
 
+  const [burst, setBurst] = useState(false);
+  const handleDoubleTap = () => {
+    if (!liked) toggleLike.mutate();
+    setBurst(true);
+    setTimeout(() => setBurst(false), 700);
+  };
+
   return (
     <section className="relative h-[100dvh] w-full snap-start snap-always bg-black overflow-hidden">
       <video
@@ -134,7 +143,15 @@ export function ReelCard({
         playsInline
         className="absolute inset-0 w-full h-full object-cover"
         onClick={onToggleMute}
+        onDoubleClick={handleDoubleTap}
       />
+
+      {/* Coeur qui apparait au double-tap */}
+      {burst && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+          <Heart className="w-28 h-28 fill-red-500 text-red-500 drop-shadow-2xl torque-pop" />
+        </div>
+      )}
 
       {/* Voile pour la lisibilité du texte */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
@@ -170,7 +187,10 @@ export function ReelCard({
         </Link>
 
         <button onClick={() => toggleLike.mutate()} disabled={!user} className="flex flex-col items-center gap-1">
-          <Heart className={`w-8 h-8 drop-shadow ${liked ? "fill-red-500 text-red-500" : "text-white"}`} />
+          <Heart
+            key={likePopKey}
+            className={`w-8 h-8 drop-shadow ${liked ? "fill-red-500 text-red-500 torque-pop" : "text-white"}`}
+          />
           <span className="text-xs font-semibold text-white drop-shadow">{post.likes_count}</span>
         </button>
 
