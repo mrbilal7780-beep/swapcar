@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
-import { useEffect } from "react";
-import { Film, Car, MapPin, MessageCircle, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Film, Car, MapPin, MessageCircle, ArrowRight, Download, Share, Apple, PlayCircle } from "lucide-react";
 import { VideoBackground } from "@/components/VideoBackground";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -40,6 +41,79 @@ const FEATURES = [
     text: "Discute directement avec n'importe quel membre de la communauté, sans détour.",
   },
 ];
+
+function DownloadSection() {
+  const { canInstall, promptInstall, installed } = usePwaInstall();
+  const [isIOS, setIsIOS] = useState(false);
+  const [showIosHelp, setShowIosHelp] = useState(false);
+
+  useEffect(() => {
+    setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !("MSStream" in window));
+  }, []);
+
+  if (installed) return null;
+
+  const handleInstallClick = async () => {
+    if (canInstall) {
+      await promptInstall();
+    } else if (isIOS) {
+      setShowIosHelp((v) => !v);
+    }
+  };
+
+  return (
+    <section className="px-6 py-20 max-w-3xl mx-auto text-center">
+      <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Emmène TORQUE partout</p>
+      <h2 className="text-3xl sm:text-4xl font-black mb-4">Télécharge l'app</h2>
+      <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+        Installe TORQUE sur ton téléphone en un instant — accès direct depuis
+        ton écran d'accueil, plein écran, comme une vraie app native.
+      </p>
+
+      <button
+        onClick={handleInstallClick}
+        className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-primary text-primary-foreground font-bold text-sm hover:shadow-lg hover:shadow-primary/40 transition active:scale-95 duration-150"
+      >
+        <Download className="w-4 h-4" />
+        Installer l'app
+      </button>
+
+      {showIosHelp && (
+        <div className="mt-6 mx-auto max-w-sm rounded-2xl bg-white/[0.03] border border-white/10 p-5 text-sm text-left">
+          <p className="font-bold mb-2">Sur iPhone / iPad (Safari) :</p>
+          <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+            <li className="flex items-center gap-1.5 flex-wrap">
+              Appuie sur l'icône de partage <Share className="w-3.5 h-3.5 shrink-0" /> en bas de l'écran
+            </li>
+            <li>Choisis « Sur l'écran d'accueil »</li>
+            <li>Confirme — TORQUE apparaît comme une vraie app</li>
+          </ol>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
+        <StoreBadge icon={Apple} label="App Store" />
+        <StoreBadge icon={PlayCircle} label="Google Play" />
+      </div>
+      <p className="text-xs text-muted-foreground/70 mt-3">Bientôt disponibles</p>
+    </section>
+  );
+}
+
+function StoreBadge({ icon: Icon, label }: { icon: typeof Apple; label: string }) {
+  return (
+    <div
+      aria-disabled="true"
+      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-muted-foreground/60 cursor-not-allowed select-none"
+    >
+      <Icon className="w-5 h-5" />
+      <div className="text-left leading-tight">
+        <p className="text-[10px] uppercase tracking-wide">Bientôt sur</p>
+        <p className="text-sm font-bold">{label}</p>
+      </div>
+    </div>
+  );
+}
 
 function Index() {
   const { user, loading } = useAuth();
@@ -119,6 +193,9 @@ function Index() {
           ))}
         </div>
       </section>
+
+      {/* Téléchargement */}
+      <DownloadSection />
 
       {/* CTA final */}
       <section className="racing-stripes relative px-6 py-24 text-center overflow-hidden">
