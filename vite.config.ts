@@ -6,10 +6,16 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
   // Empty plugins array so Cloudflare's wrangler setup can inject its plugin during deploy.
-  plugins: [],
+  plugins: [cloudflare({
+    viteEnvironment: {
+      name: "ssr"
+    }
+  })],
 });
