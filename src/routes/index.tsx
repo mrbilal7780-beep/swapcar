@@ -45,19 +45,15 @@ function Index() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Le contenu de la vitrine est toujours rendu (y compris cote serveur, pour
+  // le SEO et les apercus de lien) - un utilisateur deja connecte est
+  // redirige des que la session est confirmee, sans passer par un ecran de
+  // chargement qui viderait le HTML SSR de son contenu.
   useEffect(() => {
     if (!loading && user) {
       navigate({ to: "/feed" });
     }
   }, [user, loading, navigate]);
-
-  if (loading || user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="bg-background text-foreground">
