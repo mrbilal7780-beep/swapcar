@@ -31,6 +31,17 @@ interface RawPost {
 
 type FeedMode = "following" | "foryou";
 
+const POST_SELECT = `*, profiles!posts_author_id_fkey (user_id, display_name, username, avatar_url)`;
+
+function flattenProfile(p: any): RawPost {
+  return {
+    ...p,
+    display_name: p.profiles?.display_name,
+    username: p.profiles?.username,
+    avatar_url: p.profiles?.avatar_url,
+  } as RawPost;
+}
+
 function toFeedPost(p: RawPost): FeedPost {
   return {
     ...p,
@@ -71,8 +82,19 @@ function ReelsFeed() {
         .select("*")
         .eq("media_type", "video")
         .range(pageParam, pageParam + 9);
-      if (error) throw error;
-      return (data ?? []) as RawPost[];
+      if (!error && data && (data.length > 0 || pageParam > 0)) return data as RawPost[];
+
+      // Repli : si la vue feed_ranked n'existe pas, plante ou ne renvoie rien, on lit
+      // directement la table posts pour que les reels s'affichent quand même.
+      console.warn("feed_ranked indisponible, repli sur la table posts", error);
+      const { data: fb, error: fbError } = await supabase
+        .from("posts")
+        .select(POST_SELECT)
+        .eq("media_type", "video")
+        .order("created_at", { ascending: false })
+        .range(pageParam, pageParam + 9);
+      if (fbError) throw fbError;
+      return (fb ?? []).map(flattenProfile);
     },
     getNextPageParam: (last, all) => (last.length === 10 ? all.length * 10 : undefined),
     initialPageParam: 0,
@@ -86,18 +108,13 @@ function ReelsFeed() {
       if (ids.length === 0) return [] as RawPost[];
       const { data, error } = await supabase
         .from("posts")
-        .select(`*, profiles!posts_author_id_fkey (user_id, display_name, username, avatar_url)`)
+        .select(POST_SELECT)
         .eq("media_type", "video")
         .in("author_id", ids)
         .order("created_at", { ascending: false })
         .range(pageParam, pageParam + 9);
       if (error) throw error;
-      return (data ?? []).map((p: any) => ({
-        ...p,
-        display_name: p.profiles?.display_name,
-        username: p.profiles?.username,
-        avatar_url: p.profiles?.avatar_url,
-      })) as RawPost[];
+      return (data ?? []).map(flattenProfile);
     },
     getNextPageParam: (last, all) => (last.length === 10 ? all.length * 10 : undefined),
     initialPageParam: 0,
@@ -175,6 +192,23 @@ function ReelsFeed() {
     return (
       <div className="min-h-[100dvh] bg-black flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (activeQuery.isError) {
+    return (
+      <div className="h-[100dvh] bg-black flex flex-col items-center justify-center gap-4 px-8 text-center text-white">
+        <Film className="w-12 h-12 text-white/40" />
+        <p className="text-lg font-bold">Impossible de charger les reels</p>
+        <p className="text-sm text-white/60">Vérifie ta connexion puis réessaie.</p>
+        <button
+          onClick={() => activeQuery.refetch()}
+          className="px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold active:scale-95 transition"
+        >
+          Réessayer
+        </button>
+        <BottomNav />
       </div>
     );
   }

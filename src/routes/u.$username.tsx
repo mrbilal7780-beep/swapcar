@@ -5,7 +5,7 @@ import { PageShell } from "@/components/layout/Header";
 import { type FeedPost } from "@/components/social/PostCard";
 import { PostDetailModal } from "@/components/social/PostDetailModal";
 import { useAuth } from "@/lib/auth";
-import { Grid3x3, Car, ArrowLeft } from "lucide-react";
+import { Grid3x3, Car, ArrowLeft, Film, Play } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/u/$username")({
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/u/$username")({
   component: PublicProfile,
 });
 
-type Tab = "posts" | "garage";
+type Tab = "posts" | "reels" | "garage";
 
 function PublicProfile() {
   const { username } = Route.useParams();
@@ -137,6 +137,7 @@ function PublicProfile() {
   const isMe = user?.id === profileUserId;
   const handle = profile.username ?? profileUserId?.slice(0, 8);
   const photos = posts.filter((p) => p.media_type !== "video");
+  const reels = posts.filter((p) => p.media_type === "video");
   const openPost = posts.find((p) => p.id === openPostId);
 
   return (
@@ -206,8 +207,9 @@ function PublicProfile() {
         )}
 
         {/* Tabs */}
-        <div className="grid grid-cols-2 border-t border-white/10">
+        <div className="grid grid-cols-3 border-t border-white/10">
           <TabButton active={tab === "posts"} onClick={() => setTab("posts")} icon={Grid3x3} />
+          <TabButton active={tab === "reels"} onClick={() => setTab("reels")} icon={Film} />
           <TabButton active={tab === "garage"} onClick={() => setTab("garage")} icon={Car} />
         </div>
 
@@ -222,6 +224,30 @@ function PublicProfile() {
                   {p.media_urls?.[0] && (
                     <img src={p.media_urls[0]} alt="" className="w-full h-full object-cover" />
                   )}
+                </button>
+              ))}
+            </div>
+          )
+        )}
+
+        {/* Reels */}
+        {tab === "reels" && (
+          reels.length === 0 ? (
+            <EmptyState text="Aucun reel" />
+          ) : (
+            <div className="grid grid-cols-3 gap-[2px]">
+              {reels.map((p) => (
+                <button key={p.id} onClick={() => setOpenPostId(p.id)} className="aspect-[9/16] bg-white/5 relative">
+                  {p.media_urls?.[0] && (
+                    <video
+                      src={`${p.media_urls[0]}#t=0.1`}
+                      preload="metadata"
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  <Play className="absolute top-2 right-2 w-4 h-4 text-white drop-shadow" fill="currentColor" />
                 </button>
               ))}
             </div>
