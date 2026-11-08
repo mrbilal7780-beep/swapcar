@@ -64,7 +64,7 @@ function EventList({ onSelect, onCreate }: { onSelect: (id: string) => void; onC
       <div className="max-w-2xl mx-auto">
         <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-white/5 px-4 py-3">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-xl font-black">Rassemblements 🏁</h1>
+            <h1 className="text-xl font-black">Rassemblements</h1>
             <button onClick={onCreate} className="flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-semibold">
               <Plus className="w-4 h-4" /> Créer
             </button>
@@ -152,6 +152,7 @@ function EventDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [showGarage, setShowGarage] = useState<string | null>(null);
+  const [showJoin, setShowJoin] = useState(false);
 
   const { data: event } = useQuery({
     queryKey: ["event", id],
@@ -197,20 +198,46 @@ function EventDetail({ id, onBack }: { id: string; onBack: () => void }) {
     },
   });
 
+  // Véhicules de la personne connectée (pour choisir avec lequel elle vient)
+  const { data: myVehicles = [] } = useQuery({
+    queryKey: ["my-vehicles", user?.id],
+    enabled: !!user && showJoin,
+    queryFn: async () => {
+      const { data } = await supabase.from("vehicles").select("*").eq("owner_id", user!.id).limit(20);
+      return data ?? [];
+    },
+  });
+
+  // Véhicules annoncés par les participants (« Visiteur » quand il n'y en a pas)
+  const attendeeVehicleIds = attendees.map((a: any) => a.vehicle_id).filter(Boolean);
+  const { data: attendeeVehicles = [] } = useQuery({
+    queryKey: ["attendee-vehicles", id, attendeeVehicleIds.join(",")],
+    enabled: attendeeVehicleIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("vehicles").select("id, make, model, year").in("id", attendeeVehicleIds);
+      return data ?? [];
+    },
+  });
+  const vehicleById = new Map<string, any>(attendeeVehicles.map((v: any) => [v.id, v]));
+
   const join = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (vehicleId: string | null) => {
       if (!user) throw new Error("Connexion requise");
       if (attending) {
-        await supabase.from("event_attendees").delete().eq("event_id", id).eq("user_id", user.id);
+        const { error } = await supabase.from("event_attendees").delete().eq("event_id", id).eq("user_id", user.id);
+        if (error) throw error;
       } else {
-        await supabase.from("event_attendees").insert({ event_id: id, user_id: user.id });
+        const { error } = await supabase
+          .from("event_attendees")
+          .insert({ event_id: id, user_id: user.id, vehicle_id: vehicleId });
+        if (error) throw error;
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["attending", id] });
       qc.invalidateQueries({ queryKey: ["event", id] });
       qc.invalidateQueries({ queryKey: ["attendees", id] });
-      toast.success(attending ? "Tu ne participes plus" : "Tu participes ! 🏁");
+      toast.success(attending ? "Tu ne participes plus" : "Tu participes !");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -273,7 +300,7 @@ function EventDetail({ id, onBack }: { id: string; onBack: () => void }) {
 
           {/* Règles */}
           <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-            <h3 className="font-bold text-sm mb-3">📋 Règles du rassemblement</h3>
+            <h3 className="font-bold text-sm mb-3">Règles du rassemblement</h3>
             <ul className="space-y-2">
               {RULES.map((r, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -293,7 +320,7 @@ function EventDetail({ id, onBack }: { id: string; onBack: () => void }) {
           {/* Bouton participer */}
           {!isPast && user && (
             <button
-              onClick={() => join.mutate()}
+              onClick={() => (attending ? join.mutate(null) : setShowJoin(true))}
               disabled={join.isPending}
               className={`w-full py-3 rounded-xl font-semibold transition ${
                 attending
@@ -301,8 +328,46 @@ function EventDetail({ id, onBack }: { id: string; onBack: () => void }) {
                   : "bg-primary text-primary-foreground hover:bg-primary/90"
               }`}
             >
-              {join.isPending ? "..." : attending ? "✓ Je participe — Annuler" : "🏁 Participer"}
+              {join.isPending ? "..." : attending ? "Je participe · Annuler" : "Participer"}
             </button>
+          )}
+
+          {/* Choix : avec quel véhicule, ou en visiteur */}
+          {showJoin && (
+            <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true">
+              <button className="absolute inset-0 bg-black/60" onClick={() => setShowJoin(false)} aria-label="Fermer" />
+              <div className="relative w-full max-w-md bg-[#101319] border border-white/10 rounded-t-3xl sm:rounded-3xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] space-y-3 max-h-[85dvh] overflow-y-auto">
+                <h2 className="font-bold">Comment viens-tu ?</h2>
+                <p className="text-xs text-muted-foreground">
+                  Choisis le véhicule avec lequel tu viens, ou participe en visiteur si tu n'en as pas.
+                </p>
+                {myVehicles.map((v: any) => (
+                  <button
+                    key={v.id}
+                    onClick={() => { setShowJoin(false); join.mutate(v.id); }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:border-primary/40 transition text-left"
+                  >
+                    {v.photos?.[0] ? (
+                      <img src={v.photos[0]} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                        <Car className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm truncate">{v.make} {v.model}</p>
+                      <p className="text-xs text-muted-foreground">{v.year}</p>
+                    </div>
+                  </button>
+                ))}
+                <button
+                  onClick={() => { setShowJoin(false); join.mutate(null); }}
+                  className="w-full py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 font-semibold text-sm transition"
+                >
+                  Venir en visiteur (sans véhicule)
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Participants avec garage */}
@@ -322,7 +387,7 @@ function EventDetail({ id, onBack }: { id: string; onBack: () => void }) {
                         </div>
                         <div>
                           <p className="font-semibold text-sm">{p?.display_name ?? handle}</p>
-                          <p className="text-xs text-muted-foreground">@{handle}</p>
+                          <p className="text-xs text-muted-foreground">@{handle} · {vehicleById.get(a.vehicle_id) ? `${vehicleById.get(a.vehicle_id).make} ${vehicleById.get(a.vehicle_id).model}` : "Visiteur"}</p>
                         </div>
                       </Link>
                       <button
@@ -436,7 +501,7 @@ function CreateEvent({ onBack }: { onBack: () => void }) {
 
     setSaving(false);
     if (error) { toast.error("Erreur : " + error.message); return; }
-    toast.success("Rassemblement créé ! 🏁");
+    toast.success("Rassemblement créé !");
     qc.invalidateQueries({ queryKey: ["events"] });
     onBack();
   };
@@ -519,13 +584,13 @@ function CreateEvent({ onBack }: { onBack: () => void }) {
           </Field>
 
           <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-xs text-muted-foreground">
-            <p className="font-semibold text-foreground mb-2">📋 Règles automatiques appliquées</p>
+            <p className="font-semibold text-foreground mb-2">Règles automatiques appliquées</p>
             {RULES.slice(0, 3).map((r, i) => <p key={i} className="mb-1">• {r}</p>)}
             <p className="text-primary">+ {RULES.length - 3} autres règles standard TORQUE</p>
           </div>
 
           <button onClick={handleSubmit} disabled={saving} className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground py-3 rounded-xl font-semibold transition">
-            {saving ? "Création..." : "🏁 Créer le rassemblement"}
+            {saving ? "Création..." : "Créer le rassemblement"}
           </button>
         </div>
       </div>

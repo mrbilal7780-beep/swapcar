@@ -1,3 +1,4 @@
+import { compressImage } from "@/lib/image";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,11 +53,20 @@ function CreatePost() {
     let mediaUrl: string | null = null;
 
     if (file && user) {
-      const ext = file.name.split(".").pop();
+      let toUpload: Blob = file;
+      let ext = file.name.split(".").pop() ?? "bin";
+      if (file.type.startsWith("image/") && file.type !== "image/gif") {
+        try {
+          toUpload = await compressImage(file, { maxSize: 1600, quality: 0.82 });
+          ext = "jpg";
+        } catch {
+          // Format illisible par le navigateur : on envoie le fichier d'origine.
+        }
+      }
       const path = `${user.id}/${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("post-media")
-        .upload(path, file, { upsert: true });
+        .upload(path, toUpload, { upsert: true, contentType: toUpload.type || undefined });
 
       if (uploadError) {
         toast.error("Erreur upload : " + uploadError.message);

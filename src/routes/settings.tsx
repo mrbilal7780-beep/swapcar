@@ -1,3 +1,4 @@
+import { compressImage } from "@/lib/image";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,11 +60,19 @@ function Settings() {
 
     // Upload avatar si un nouveau fichier a été choisi
     if (avatarFile) {
-      const ext = avatarFile.name.split(".").pop();
+      // Recadrage carré 512 px + compression : n'importe quelle photo passe, quelle que soit sa taille.
+      let toUpload: Blob = avatarFile;
+      let ext = avatarFile.name.split(".").pop() ?? "jpg";
+      try {
+        toUpload = await compressImage(avatarFile, { maxSize: 512, square: true, quality: 0.85 });
+        ext = "jpg";
+      } catch {
+        // Format illisible par le navigateur : on envoie le fichier d'origine tel quel.
+      }
       const path = `${userId}/avatar.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(path, avatarFile, { upsert: true });
+        .upload(path, toUpload, { upsert: true, contentType: toUpload.type || undefined });
 
       if (uploadError) {
         toast.error("Erreur upload avatar : " + uploadError.message);
@@ -72,7 +81,7 @@ function Settings() {
       }
 
       const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-      finalAvatarUrl = urlData.publicUrl;
+      finalAvatarUrl = `${urlData.publicUrl}?v=${Date.now()}`;
     }
 
     const { error } = await supabase.from("profiles").update({

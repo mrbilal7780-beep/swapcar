@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
-import { Search, X, Grid3x3, Users, Compass } from "lucide-react";
+import { Search, X, Grid3x3, Users, Compass, Heart, MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/explore")({
   head: () => ({ meta: [{ title: "Explorer — TORQUE" }] }),
@@ -215,8 +215,8 @@ function PostThumb({ post }: { post: any }) {
         )}
         {/* Hover overlay */}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-3 text-white text-xs font-bold">
-          <span>❤️ {post.likes_count}</span>
-          <span>💬 {post.comments_count}</span>
+          <span className="inline-flex items-center gap-1"><Heart className="w-4 h-4" fill="currentColor" /> {post.likes_count}</span>
+          <span className="inline-flex items-center gap-1"><MessageCircle className="w-4 h-4" /> {post.comments_count}</span>
         </div>
       </button>
 
@@ -266,7 +266,7 @@ function PostThumb({ post }: { post: any }) {
 
             {/* Stats + link */}
             <div className="px-3 pb-3 flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">❤️ {post.likes_count} · 💬 {post.comments_count}</span>
+              <span className="text-muted-foreground inline-flex items-center gap-3"><span className="inline-flex items-center gap-1"><Heart className="w-3.5 h-3.5" /> {post.likes_count}</span><span className="inline-flex items-center gap-1"><MessageCircle className="w-3.5 h-3.5" /> {post.comments_count}</span></span>
               <Link
                 to="/u/$username"
                 params={{ username: profileParam }}
