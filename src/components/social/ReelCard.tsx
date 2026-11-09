@@ -41,49 +41,75 @@ export function ReelCard({
   }, [isActive]);
 
   const invalidatePosts = () => {
-    qc.invalidateQueries({ queryKey: ["reels"] });
+    qc.invalidateQueries({ queryKey: ["post-counts", post.id] });
   };
 
-  const { data: liked } = useQuery({
-    queryKey: ["post-liked", post.id, user?.id],
+  const likedKey = ["post-liked", post.id, user?.id];
+  const countsKey = ["post-counts", post.id];
+
+  // État du j'aime de la personne connectée
+  const { data: liked = false } = useQuery({
+    queryKey: likedKey,
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("likes")
-        .select("id")
+        .select("post_id")
         .eq("post_id", post.id)
         .eq("user_id", user!.id)
-        .maybeSingle();
-      return !!data;
+        .limit(1);
+      if (error) throw error;
+      return (data?.length ?? 0) > 0;
     },
   });
 
-  const likedKey = ["post-liked", post.id, user?.id];
+  // Compteurs lus directement dans les tables : toujours exacts, jamais « bloqués »
+  const { data: counts } = useQuery({
+    queryKey: countsKey,
+    initialData: { likes: post.likes_count ?? 0, comments: post.comments_count ?? 0 },
+    queryFn: async () => {
+      const [l, c] = await Promise.all([
+        supabase.from("likes").select("post_id", { count: "exact", head: true }).eq("post_id", post.id),
+        supabase.from("comments").select("post_id", { count: "exact", head: true }).eq("post_id", post.id),
+      ]);
+      return {
+        likes: l.count ?? post.likes_count ?? 0,
+        comments: c.count ?? post.comments_count ?? 0,
+      };
+    },
+  });
+
   const toggleLike = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (next: boolean) => {
       if (!user) throw new Error("Connexion requise");
-      if (liked) {
-        await supabase.from("likes").delete().eq("post_id", post.id).eq("user_id", user.id);
+      if (next) {
+        const { error } = await supabase.from("likes").insert({ post_id: post.id, user_id: user.id });
+        if (error && error.code !== "23505") throw error; // 23505 = déjà aimé
       } else {
-        await supabase.from("likes").insert({ post_id: post.id, user_id: user.id });
+        const { error } = await supabase.from("likes").delete().eq("post_id", post.id).eq("user_id", user.id);
+        if (error) throw error;
       }
-      const { count } = await supabase
-        .from("likes")
-        .select("*", { count: "exact", head: true })
-        .eq("post_id", post.id);
-      await supabase.from("posts").update({ likes_count: count ?? 0 }).eq("id", post.id);
     },
-    onMutate: async () => {
+    onMutate: async (next: boolean) => {
       await qc.cancelQueries({ queryKey: likedKey });
-      const previous = qc.getQueryData(likedKey);
-      if (!liked) setLikePopKey((k) => k + 1);
-      qc.setQueryData(likedKey, !liked);
-      return { previous };
+      await qc.cancelQueries({ queryKey: countsKey });
+      const previousLiked = qc.getQueryData(likedKey);
+      const previousCounts = qc.getQueryData(countsKey) as { likes: number; comments: number } | undefined;
+      if (next) setLikePopKey((k) => k + 1);
+      qc.setQueryData(likedKey, next);
+      if (previousCounts) {
+        qc.setQueryData(countsKey, { ...previousCounts, likes: Math.max(0, previousCounts.likes + (next ? 1 : -1)) });
+      }
+      return { previousLiked, previousCounts };
     },
-    onError: (_e, _vars, context) => qc.setQueryData(likedKey, context?.previous),
+    onError: (e: any, _next, context) => {
+      qc.setQueryData(likedKey, context?.previousLiked);
+      if (context?.previousCounts) qc.setQueryData(countsKey, context.previousCounts);
+      toast.error("J'aime impossible : " + (e?.message ?? "erreur"));
+    },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: likedKey });
-      invalidatePosts();
+      qc.invalidateQueries({ queryKey: countsKey });
     },
   });
 
@@ -128,13 +154,24 @@ export function ReelCard({
 
   const [burst, setBurst] = useState(false);
   const handleDoubleTap = () => {
-    if (!liked) toggleLike.mutate();
+    if (!liked && user) toggleLike.mutate(true);
     setBurst(true);
     setTimeout(() => setBurst(false), 700);
   };
 
   return (
     <section className="relative h-[100dvh] w-full snap-start snap-always bg-black overflow-hidden">
+      <div
+        className="absolute inset-0 overflow-hidden transition-all duration-300 ease-out"
+        style={{
+          transform: showComments ? "scale(0.4) translateY(2%)" : "none",
+          transformOrigin: "top center",
+          borderRadius: showComments ? 28 : 0,
+        }}
+      >
+      {showComments && (
+        <div className="absolute inset-0 z-30" onClick={() => setShowComments(false)} />
+      )}
       <video
         ref={videoRef}
         src={post.media_urls?.[0]}
@@ -165,7 +202,7 @@ export function ReelCard({
       </button>
 
       {/* Colonne d'actions */}
-      <div className="absolute right-3 bottom-28 z-10 flex flex-col items-center gap-5">
+      <div className={`absolute right-3 bottom-28 z-10 flex flex-col items-center gap-5 transition-opacity ${showComments ? "opacity-0 pointer-events-none" : ""}`}>
         <Link to="/u/$username" params={{ username: profileParam }} className="relative">
           {post.author?.avatar_url ? (
             <img src={post.author.avatar_url} alt="" className="w-11 h-11 rounded-full object-cover border-2 border-white/80" />
@@ -186,17 +223,17 @@ export function ReelCard({
           )}
         </Link>
 
-        <button onClick={() => toggleLike.mutate()} disabled={!user} className="flex flex-col items-center gap-1">
+        <button onClick={() => toggleLike.mutate(!liked)} disabled={!user} className="flex flex-col items-center gap-1">
           <Heart
             key={likePopKey}
             className={`w-8 h-8 drop-shadow ${liked ? "fill-red-500 text-red-500 torque-pop" : "text-white"}`}
           />
-          <span className="text-xs font-semibold text-white drop-shadow">{post.likes_count}</span>
+          <span className="text-xs font-semibold text-white drop-shadow">{counts.likes}</span>
         </button>
 
         <button onClick={() => setShowComments(true)} className="flex flex-col items-center gap-1">
           <MessageCircle className="w-8 h-8 text-white drop-shadow" />
-          <span className="text-xs font-semibold text-white drop-shadow">{post.comments_count}</span>
+          <span className="text-xs font-semibold text-white drop-shadow">{counts.comments}</span>
         </button>
 
         <button
@@ -214,7 +251,7 @@ export function ReelCard({
       </div>
 
       {/* Auteur + légende */}
-      <div className="absolute left-4 right-20 bottom-24 z-10 text-white">
+      <div className={`absolute left-4 right-20 bottom-24 z-10 text-white transition-opacity ${showComments ? "opacity-0 pointer-events-none" : ""}`}>
         <Link to="/u/$username" params={{ username: profileParam }} className="font-bold text-sm drop-shadow">
           @{handle}
         </Link>
@@ -223,8 +260,10 @@ export function ReelCard({
         )}
       </div>
 
+      </div>
+
       {showComments && (
-        <CommentsSheet postId={post.id} onClose={() => setShowComments(false)} onSent={invalidatePosts} />
+        <CommentsSheet postId={post.id} onClose={() => setShowComments(false)} onSent={invalidatePosts} variant="reel" />
       )}
     </section>
   );

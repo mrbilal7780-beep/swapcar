@@ -5,6 +5,7 @@ import { RequireAuth, useAuth } from "@/lib/auth";
 import { useEffect, useRef, useState } from "react";
 import { Film } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+import { NotificationsBell } from "@/components/social/NotificationsBell";
 import { ReelCard } from "@/components/social/ReelCard";
 import type { FeedPost } from "@/components/social/PostCard";
 
@@ -208,7 +209,8 @@ function ReelsFeed() {
         >
           Réessayer
         </button>
-        <BottomNav />
+        <NotificationsBell floating />
+      <BottomNav />
       </div>
     );
   }
@@ -264,6 +266,7 @@ function ReelsFeed() {
         </div>
       )}
 
+      <NotificationsBell floating />
       <BottomNav />
     </div>
   );

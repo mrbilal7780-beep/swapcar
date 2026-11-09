@@ -41,10 +41,12 @@ export function PostCard({
   post,
   onDeleted,
   defaultShowComments = false,
+  detail = false,
 }: {
   post: FeedPost;
   onDeleted?: () => void;
   defaultShowComments?: boolean;
+  detail?: boolean;
 }) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -65,49 +67,73 @@ export function PostCard({
     qc.invalidateQueries({ queryKey: ["explore-posts"] });
   };
 
-  // Like status
-  const { data: liked } = useQuery({
-    queryKey: ["post-liked", post.id, user?.id],
+  const [likePopKey, setLikePopKey] = useState(0);
+  const likedKey = ["post-liked", post.id, user?.id];
+  const countsKey = ["post-counts", post.id];
+
+  // État du j'aime de la personne connectée
+  const { data: liked = false } = useQuery({
+    queryKey: likedKey,
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("likes")
-        .select("id")
+        .select("post_id")
         .eq("post_id", post.id)
         .eq("user_id", user!.id)
-        .maybeSingle();
-      return !!data;
+        .limit(1);
+      if (error) throw error;
+      return (data?.length ?? 0) > 0;
     },
   });
 
-  const [likePopKey, setLikePopKey] = useState(0);
-  const likedKey = ["post-liked", post.id, user?.id];
+  // Compteurs lus directement dans les tables : toujours exacts, jamais « bloqués »
+  const { data: counts } = useQuery({
+    queryKey: countsKey,
+    initialData: { likes: post.likes_count ?? 0, comments: post.comments_count ?? 0 },
+    queryFn: async () => {
+      const [l, c] = await Promise.all([
+        supabase.from("likes").select("post_id", { count: "exact", head: true }).eq("post_id", post.id),
+        supabase.from("comments").select("post_id", { count: "exact", head: true }).eq("post_id", post.id),
+      ]);
+      return {
+        likes: l.count ?? post.likes_count ?? 0,
+        comments: c.count ?? post.comments_count ?? 0,
+      };
+    },
+  });
+
   const toggleLike = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (next: boolean) => {
       if (!user) throw new Error("Connexion requise");
-      if (liked) {
-        await supabase.from("likes").delete().eq("post_id", post.id).eq("user_id", user.id);
+      if (next) {
+        const { error } = await supabase.from("likes").insert({ post_id: post.id, user_id: user.id });
+        if (error && error.code !== "23505") throw error; // 23505 = déjà aimé
       } else {
-        await supabase.from("likes").insert({ post_id: post.id, user_id: user.id });
+        const { error } = await supabase.from("likes").delete().eq("post_id", post.id).eq("user_id", user.id);
+        if (error) throw error;
       }
-      // Recalcule le compteur depuis la source de vérité plutôt que de dépendre d'un trigger DB
-      const { count } = await supabase
-        .from("likes")
-        .select("*", { count: "exact", head: true })
-        .eq("post_id", post.id);
-      await supabase.from("posts").update({ likes_count: count ?? 0 }).eq("id", post.id);
     },
-    onMutate: async () => {
+    onMutate: async (next: boolean) => {
       await qc.cancelQueries({ queryKey: likedKey });
-      const previous = qc.getQueryData(likedKey);
-      if (!liked) setLikePopKey((k) => k + 1);
-      qc.setQueryData(likedKey, !liked);
-      return { previous };
+      await qc.cancelQueries({ queryKey: countsKey });
+      const previousLiked = qc.getQueryData(likedKey);
+      const previousCounts = qc.getQueryData(countsKey) as { likes: number; comments: number } | undefined;
+      if (next) setLikePopKey((k) => k + 1);
+      qc.setQueryData(likedKey, next);
+      if (previousCounts) {
+        qc.setQueryData(countsKey, { ...previousCounts, likes: Math.max(0, previousCounts.likes + (next ? 1 : -1)) });
+      }
+      return { previousLiked, previousCounts };
     },
-    onError: (_e, _vars, context) => qc.setQueryData(likedKey, context?.previous),
+    onError: (e: any, _next, context) => {
+      qc.setQueryData(likedKey, context?.previousLiked);
+      if (context?.previousCounts) qc.setQueryData(countsKey, context.previousCounts);
+      toast.error("J'aime impossible : " + (e?.message ?? "erreur"));
+    },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: likedKey });
-      invalidatePosts();
+      qc.invalidateQueries({ queryKey: countsKey });
     },
   });
 
@@ -232,21 +258,24 @@ export function PostCard({
 
       {/* Media */}
       {post.media_urls?.length > 0 && (
-        <div className={`grid gap-[2px] ${post.media_urls.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-          {post.media_urls.slice(0, 4).map((url, i) =>
-            post.media_type === "video" ? (
-              <video key={i} src={url} controls playsInline className="w-full aspect-square object-cover bg-black" />
+        <div className={`grid gap-[2px] bg-black ${post.media_urls.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+          {post.media_urls.slice(0, 4).map((url, i) => {
+            const single = post.media_urls.length === 1;
+            // En vue détaillée, un média seul s'affiche en entier (sans recadrage)
+            const fit = detail && single ? "max-h-[62dvh] w-full object-contain" : "w-full aspect-square object-cover";
+            return post.media_type === "video" ? (
+              <video key={i} src={url} controls playsInline preload="metadata" className={`${fit} bg-black`} />
             ) : (
-              <img key={i} src={url} alt="" className="w-full aspect-square object-cover" loading="lazy" />
-            )
-          )}
+              <img key={i} src={url} alt="" className={fit} loading="lazy" />
+            );
+          })}
         </div>
       )}
 
       {/* Actions */}
       <div className="px-4 pt-2 flex items-center gap-4">
         <button
-          onClick={() => toggleLike.mutate()}
+          onClick={() => toggleLike.mutate(!liked)}
           disabled={!user || toggleLike.isPending}
           className="flex items-center gap-1.5 transition"
         >
@@ -279,7 +308,7 @@ export function PostCard({
       {/* Likes count + views */}
       <div className="px-4 pt-1 pb-3">
         <div className="flex items-center gap-3">
-          <p className="text-sm font-bold">{post.likes_count} j'aime</p>
+          <p className="text-sm font-bold">{counts.likes} j'aime</p>
           {typeof post.views_count === "number" && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Eye className="w-3.5 h-3.5" />
@@ -287,18 +316,18 @@ export function PostCard({
             </span>
           )}
         </div>
-        {post.comments_count > 0 && !showComments && (
+        {counts.comments > 0 && !showComments && (
           <button
             onClick={() => setShowComments(true)}
             className="text-sm text-muted-foreground mt-0.5"
           >
-            Voir les {post.comments_count} commentaires
+            Voir {counts.comments > 1 ? `les ${counts.comments} commentaires` : "le commentaire"}
           </button>
         )}
       </div>
 
       {showComments && (
-        <CommentsSheet postId={post.id} onClose={() => setShowComments(false)} onSent={invalidatePosts} />
+        <CommentsSheet postId={post.id} onClose={() => setShowComments(false)} onSent={invalidatePosts} variant="post" />
       )}
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
