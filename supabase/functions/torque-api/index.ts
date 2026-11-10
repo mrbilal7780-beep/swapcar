@@ -5,7 +5,6 @@
 // - cleanup     : supprime les discussions de rasso terminées depuis plus de 24 h (appelée toutes les heures)
 // - delete-account : supprime le compte de la personne connectée
 import { createClient } from "npm:@supabase/supabase-js@2";
-import webpush from "npm:web-push@3.6.7";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -16,8 +15,14 @@ const WEBHOOK_SECRET = Deno.env.get("WEBHOOK_SECRET") ?? "";
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-if (VAPID_PUBLIC && VAPID_PRIVATE) {
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+// Chargée seulement quand une alerte doit partir : si elle pose problème, les photos privées marchent quand même
+let webpushLib: any = null;
+async function getWebPush() {
+  if (webpushLib) return webpushLib;
+  const mod: any = await import("npm:web-push@3.6.7");
+  webpushLib = mod.default ?? mod;
+  webpushLib.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+  return webpushLib;
 }
 
 const cors = {
@@ -62,6 +67,13 @@ function checkSecret(req: Request) {
 
 async function sendPush(record: any) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return { sent: 0, skipped: "vapid-missing" };
+  let webpush: any;
+  try {
+    webpush = await getWebPush();
+  } catch (e) {
+    console.error("web-push indisponible", e);
+    return { sent: 0, skipped: "push-lib-error", detail: String(e) };
+  }
 
   const { data: prefs } = await admin.from("notification_prefs").select("*").eq("user_id", record.user_id).maybeSingle();
   if (prefs) {
@@ -243,6 +255,13 @@ Deno.serve(async (req) => {
       return json(await sendPush(body.record));
     }
     switch (body?.action) {
+      case "ping":
+        return json({
+          ok: true,
+          version: "2026-11-10",
+          vapid: !!(VAPID_PUBLIC && VAPID_PRIVATE),
+          webhook_secret: WEBHOOK_SECRET !== "",
+        });
       case "media-url":
         return await mediaUrl(req, body);
       case "dm-media-url":

@@ -81,6 +81,7 @@ export async function callApi<T = any>(action: string, payload: Record<string, u
     try {
       const body = await (error as any).context?.json?.();
       if (body?.error) message = body.error;
+      else if (body?.message) message = body.message;
     } catch {
       /* garde le message par défaut */
     }
