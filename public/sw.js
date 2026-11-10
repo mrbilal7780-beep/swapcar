@@ -19,7 +19,7 @@ self.addEventListener("push", (event) => {
       await self.registration.showNotification(data.title || "TORQUE", {
         body: data.body || "",
         icon: data.icon || "/torque-icon-192.png",
-        badge: "/torque-icon-192.png",
+        badge: "/torque-badge-96.png",
         tag: data.tag || undefined,
         renotify: !!data.tag,
         data: { url: data.url || "/" },

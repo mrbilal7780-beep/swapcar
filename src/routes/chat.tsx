@@ -3,10 +3,19 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequireAuth, useAuth } from "@/lib/auth";
 import { PageShell } from "@/components/layout/Header";
-import { Send, ArrowLeft, SquarePen, Palette, Check, X } from "lucide-react";
+import { Send, ArrowLeft, SquarePen, Palette, Check, X, Plus, Camera, Image as ImageIcon, Timer } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { callApi } from "@/lib/push";
+import {
+  NormalMedia,
+  ViewOnceTile,
+  ViewOnceViewer,
+  checkPickedFile,
+  friendlyUploadError,
+  prepareUpload,
+} from "@/components/social/PrivateMedia";
 
 export const Route = createFileRoute("/chat")({
   head: () => ({ meta: [{ title: "Messages — TORQUE" }] }),
@@ -171,7 +180,7 @@ function ChatPage() {
                   </p>
                   <p className="text-xs text-muted-foreground truncate mt-0.5">
                     {conv.lastMessage.sender_id === user!.id ? "Toi : " : ""}
-                    {conv.lastMessage.content}
+                    {conv.lastMessage.media_path ? (conv.lastMessage.media_type === "video" ? "Vidéo" : "Photo") : conv.lastMessage.content}
                   </p>
                 </div>
                 <span className="text-[11px] text-muted-foreground flex-shrink-0">
@@ -201,6 +210,76 @@ function Conversation({
   const [preview, setPreview] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const firstScroll = useRef(true);
+  const [file, setFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [viewOnce, setViewOnce] = useState(false);
+  const [showAttach, setShowAttach] = useState(false);
+  const [viewer, setViewer] = useState<{ url: string; type: string } | null>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+
+  // Messages reçus en direct (presque instantané), en plus de la vérification régulière
+  useEffect(() => {
+    const channel = supabase
+      .channel(`dm-${myId}-${otherId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${myId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["messages", myId, otherId] });
+          qc.invalidateQueries({ queryKey: ["conversations", myId] });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [myId, otherId, qc]);
+
+  useEffect(() => {
+    return () => {
+      if (filePreview) URL.revokeObjectURL(filePreview);
+    };
+  }, [filePreview]);
+
+  const viewsKey = ["message-views", myId];
+  const { data: openedIds = [] } = useQuery({
+    queryKey: viewsKey,
+    refetchInterval: 8000,
+    queryFn: async () => {
+      const { data } = await supabase.from("message_views").select("message_id").eq("user_id", myId);
+      return (data ?? []).map((v: any) => String(v.message_id));
+    },
+  });
+  const opened = new Set(openedIds);
+
+  const pickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    setShowAttach(false);
+    if (!f) return;
+    if (!(await checkPickedFile(f))) return;
+    setFile(f);
+    setFilePreview(URL.createObjectURL(f));
+    setViewOnce(false);
+  };
+
+  const clearFile = () => {
+    setFile(null);
+    setFilePreview(null);
+    setViewOnce(false);
+  };
+
+  const openViewOnce = async (m: any) => {
+    try {
+      const r = await callApi<{ url: string }>("dm-media-url", { message_id: m.id });
+      setViewer({ url: r.url, type: m.media_type });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Impossible d'ouvrir ce média");
+    } finally {
+      qc.invalidateQueries({ queryKey: viewsKey });
+    }
+  };
 
   // Une seule ligne par paire de personnes : on trie les deux identifiants (même ordre que dans la base).
   const [userA, userB] = [myId, otherId].sort();
@@ -267,20 +346,39 @@ function Conversation({
 
   const send = useMutation({
     mutationFn: async () => {
-      if (!text.trim()) return;
+      const caption = text.trim();
+      if (!caption && !file) return;
+      let mediaPath: string | null = null;
+      let mediaType: "image" | "video" | null = null;
+
+      if (file) {
+        const { blob, ext, isVideo } = await prepareUpload(file);
+        const path = `${myId}/${otherId}/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("chat-media")
+          .upload(path, blob, { contentType: blob.type || file.type || undefined, upsert: false });
+        if (uploadError) throw uploadError;
+        mediaPath = path;
+        mediaType = isVideo ? "video" : "image";
+      }
+
       const { error } = await supabase.from("messages").insert({
         sender_id: myId,
         receiver_id: otherId,
-        content: text.trim(),
+        content: caption || null,
+        media_path: mediaPath,
+        media_type: mediaType,
+        view_once: !!mediaPath && viewOnce,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       setText("");
+      clearFile();
       qc.invalidateQueries({ queryKey: ["messages", myId, otherId] });
       qc.invalidateQueries({ queryKey: ["conversations", myId] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Message non envoyé"),
+    onError: (e: any) => toast.error(friendlyUploadError(e)),
   });
 
   const propose = useMutation({
@@ -423,21 +521,41 @@ function Conversation({
                     </div>
                   )}
                   <div className={`flex ${isMine ? "justify-end" : "justify-start"} ${grouped ? "mt-0.5" : "mt-2"}`}>
-                    <div
-                      className={`max-w-[78%] px-3.5 py-2 rounded-2xl text-[15px] leading-snug shadow-sm break-words ${
-                        isMine
-                          ? "bg-primary text-primary-foreground rounded-br-md"
-                          : "bg-[#1a1d24] border border-white/5 text-foreground rounded-bl-md"
-                      }`}
-                    >
-                      <span className="whitespace-pre-wrap">{msg.content}</span>
-                      <span
-                        className={`ml-2 text-[10px] align-bottom whitespace-nowrap ${
-                          isMine ? "text-white/60" : "text-muted-foreground"
-                        }`}
-                      >
-                        {timeLabel(msg.created_at)}
-                      </span>
+                    <div className={`max-w-[78%] flex flex-col ${isMine ? "items-end" : "items-start"}`}>
+                      {msg.media_path && (
+                        <div className="mb-1">
+                          {msg.view_once ? (
+                            <ViewOnceTile
+                              mine={isMine}
+                              opened={opened.has(String(msg.id))}
+                              type={msg.media_type}
+                              onOpen={() => openViewOnce(msg)}
+                            />
+                          ) : (
+                            <NormalMedia action="dm-media-url" messageId={String(msg.id)} type={msg.media_type} />
+                          )}
+                        </div>
+                      )}
+                      {msg.content ? (
+                        <div
+                          className={`px-3.5 py-2 rounded-2xl text-[15px] leading-snug shadow-sm break-words ${
+                            isMine
+                              ? "bg-primary text-primary-foreground rounded-br-md"
+                              : "bg-[#1a1d24] border border-white/5 text-foreground rounded-bl-md"
+                          }`}
+                        >
+                          <span className="whitespace-pre-wrap">{msg.content}</span>
+                          <span
+                            className={`ml-2 text-[10px] align-bottom whitespace-nowrap ${
+                              isMine ? "text-white/60" : "text-muted-foreground"
+                            }`}
+                          >
+                            {timeLabel(msg.created_at)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground mx-1">{timeLabel(msg.created_at)}</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -450,26 +568,97 @@ function Conversation({
 
       {/* Zone de saisie */}
       <div className="shrink-0 border-t border-white/5 bg-background/90 backdrop-blur-md px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="max-w-2xl mx-auto flex items-center gap-2">
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && !send.isPending && send.mutate()}
-            placeholder="Écrire un message..."
-            enterKeyHint="send"
-            maxLength={2000}
-            className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-3 text-[16px] focus:outline-none focus:border-primary"
-          />
-          <button
-            onClick={() => send.mutate()}
-            disabled={!text.trim() || send.isPending}
-            aria-label="Envoyer"
-            className="w-11 h-11 bg-primary rounded-full flex items-center justify-center disabled:opacity-40 active:scale-95 transition flex-shrink-0"
-          >
-            <Send className="w-4 h-4 text-white" />
-          </button>
+        <div className="max-w-2xl mx-auto">
+          {file && filePreview && (
+            <div className="flex items-center gap-3 mb-3 p-2.5 rounded-2xl bg-white/5 border border-white/10">
+              {file.type.startsWith("video/") ? (
+                <video src={filePreview} muted className="w-14 h-14 rounded-xl object-cover bg-black" />
+              ) : (
+                <img src={filePreview} alt="" className="w-14 h-14 rounded-xl object-cover" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold truncate">{file.type.startsWith("video/") ? "Vidéo prête" : "Photo prête"}</p>
+                <div className="flex gap-2 mt-1.5">
+                  <button
+                    onClick={() => setViewOnce(false)}
+                    className={`px-3 py-1 rounded-full text-[11px] font-semibold border transition ${
+                      !viewOnce ? "bg-primary/20 border-primary/40 text-primary" : "bg-white/5 border-white/10 text-muted-foreground"
+                    }`}
+                  >
+                    Normal
+                  </button>
+                  <button
+                    onClick={() => setViewOnce(true)}
+                    className={`px-3 py-1 rounded-full text-[11px] font-semibold border transition flex items-center gap-1 ${
+                      viewOnce ? "bg-primary/20 border-primary/40 text-primary" : "bg-white/5 border-white/10 text-muted-foreground"
+                    }`}
+                  >
+                    <Timer className="w-3 h-3" /> Vue unique
+                  </button>
+                </div>
+              </div>
+              <button onClick={clearFile} aria-label="Retirer" className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center flex-shrink-0">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {showAttach && (
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => galleryRef.current?.click()}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-white/5 border border-white/10 text-sm font-semibold hover:bg-white/10 transition"
+              >
+                <ImageIcon className="w-4 h-4" /> Galerie
+              </button>
+              <button
+                onClick={() => cameraRef.current?.click()}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-white/5 border border-white/10 text-sm font-semibold hover:bg-white/10 transition"
+              >
+                <Camera className="w-4 h-4" /> Appareil photo
+              </button>
+            </div>
+          )}
+
+          <input ref={galleryRef} type="file" accept="image/*,video/*" className="hidden" onChange={pickFile} />
+          <input ref={cameraRef} type="file" accept="image/*,video/*" capture="environment" className="hidden" onChange={pickFile} />
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAttach((v) => !v)}
+              aria-label="Ajouter une photo ou une vidéo"
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition flex-shrink-0 ${
+                showAttach ? "bg-primary text-primary-foreground" : "bg-white/5 hover:bg-white/10"
+              }`}
+            >
+              <Plus className={`w-5 h-5 transition ${showAttach ? "rotate-45" : ""}`} />
+            </button>
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && !send.isPending && send.mutate()}
+              placeholder={file ? "Ajouter une légende..." : "Écrire un message..."}
+              enterKeyHint="send"
+              maxLength={2000}
+              className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-3 text-[16px] focus:outline-none focus:border-primary"
+            />
+            <button
+              onClick={() => send.mutate()}
+              disabled={(!text.trim() && !file) || send.isPending}
+              aria-label="Envoyer"
+              className="w-11 h-11 bg-primary rounded-full flex items-center justify-center disabled:opacity-40 active:scale-95 transition flex-shrink-0"
+            >
+              {send.isPending ? (
+                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Send className="w-4 h-4 text-white" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
+
+      <ViewOnceViewer viewer={viewer} onClose={() => setViewer(null)} />
 
       {/* Choix du fond d'écran */}
       {showWallpapers && (

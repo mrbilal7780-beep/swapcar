@@ -146,7 +146,7 @@ function Profile() {
           )}
           <div className="flex-1 grid grid-cols-3 text-center">
             <div>
-              <div className="text-lg font-bold">{profile?.posts_count ?? myPosts.length}</div>
+              <div className="text-lg font-bold">{myPosts.length}</div>
               <div className="text-xs text-muted-foreground">Posts</div>
             </div>
             {/* Abonnés cliquable */}

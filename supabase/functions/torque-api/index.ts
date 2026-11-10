@@ -1,6 +1,7 @@
 // Fonction serveur TORQUE (Supabase Edge Function) : "torque-api"
 // - push        : envoie la notification sur le téléphone (appelée par le webhook de la table app_notifications)
-// - media-url   : donne un lien temporaire vers une photo/vidéo de discussion (vue unique respectée)
+// - media-url   : donne un lien temporaire vers une photo/vidéo de discussion de rasso (vue unique respectée)
+// - dm-media-url : idem pour les messages privés (une vue unique est supprimée après son ouverture)
 // - cleanup     : supprime les discussions de rasso terminées depuis plus de 24 h (appelée toutes les heures)
 // - delete-account : supprime le compte de la personne connectée
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -159,6 +160,52 @@ async function mediaUrl(req: Request, body: any) {
   return json({ url: signed.signedUrl, view_once: !!m.view_once, ttl });
 }
 
+async function dmMediaUrl(req: Request, body: any) {
+  const user = await userFromRequest(req);
+  if (!user) return json({ error: "Connexion requise" }, 401);
+  if (!body.message_id) return json({ error: "Message manquant" }, 400);
+
+  const { data: m } = await admin
+    .from("messages")
+    .select("id, sender_id, receiver_id, media_path, view_once")
+    .eq("id", body.message_id)
+    .maybeSingle();
+  if (!m || !m.media_path) return json({ error: "Média introuvable" }, 404);
+
+  const isSender = m.sender_id === user.id;
+  const isReceiver = m.receiver_id === user.id;
+  if (!isSender && !isReceiver) return json({ error: "Accès refusé" }, 403);
+  if (String(m.media_path).split("/")[0] !== m.sender_id) return json({ error: "Fichier invalide" }, 403);
+
+  let ttl = 3600;
+  if (m.view_once) {
+    if (isSender) return json({ error: "Une vue unique ne peut pas être rouverte" }, 403);
+    const { error } = await admin.from("message_views").insert({ message_id: String(m.id), user_id: user.id });
+    if (error) {
+      if (error.code === "23505") return json({ error: "Déjà ouvert : ce média ne s'ouvre qu'une fois" }, 403);
+      return json({ error: "Erreur serveur" }, 500);
+    }
+    ttl = 30;
+  }
+
+  const { data: signed, error: signError } = await admin.storage.from("chat-media").createSignedUrl(m.media_path, ttl);
+  if (signError || !signed?.signedUrl) return json({ error: "Fichier indisponible" }, 404);
+
+  // Vue unique : le fichier est supprimé du stockage peu après son ouverture
+  if (m.view_once) {
+    const purge = (async () => {
+      await new Promise((resolve) => setTimeout(resolve, 45000));
+      await admin.storage.from("chat-media").remove([m.media_path]);
+    })();
+    try {
+      (globalThis as any).EdgeRuntime?.waitUntil(purge);
+    } catch {
+      /* la suppression sera faite au prochain nettoyage */
+    }
+  }
+  return json({ url: signed.signedUrl, view_once: !!m.view_once, ttl });
+}
+
 async function cleanup() {
   const { data: rows } = await admin.rpc("expired_event_media");
   const paths = (rows ?? []).map((r: any) => r.media_path).filter(Boolean);
@@ -198,6 +245,8 @@ Deno.serve(async (req) => {
     switch (body?.action) {
       case "media-url":
         return await mediaUrl(req, body);
+      case "dm-media-url":
+        return await dmMediaUrl(req, body);
       case "cleanup":
         if (!checkSecret(req)) return json({ error: "Non autorisé" }, 401);
         return json(await cleanup());

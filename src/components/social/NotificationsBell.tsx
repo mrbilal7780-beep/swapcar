@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -109,12 +109,34 @@ export function NotificationsBell({ floating = false }: { floating?: boolean }) 
     onSuccess: () => qc.invalidateQueries({ queryKey }),
   });
 
-  const markOne = useMutation({
-    mutationFn: async (id: string) => {
-      await supabase.from("app_notifications").update({ read: true }).eq("id", id);
+  const markMany = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await supabase.from("app_notifications").update({ read: true }).in("id", ids);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey }),
   });
+
+  // Les messages non lus d'une même personne sont regroupés en une seule ligne
+  const display = useMemo(() => {
+    const out: any[] = [];
+    const byActor = new Map<string, any>();
+    for (const n of items as any[]) {
+      if (n.type === "message" && !n.read && n.actor_id) {
+        const g = byActor.get(n.actor_id);
+        if (g) {
+          g.ids.push(n.id);
+          g.count += n.count ?? 1;
+          continue;
+        }
+        const first = { ...n, ids: [n.id], count: n.count ?? 1 };
+        byActor.set(n.actor_id, first);
+        out.push(first);
+        continue;
+      }
+      out.push({ ...n, ids: [n.id] });
+    }
+    return out;
+  }, [items]);
 
   if (!user) return null;
 
@@ -224,11 +246,11 @@ export function NotificationsBell({ floating = false }: { floating?: boolean }) 
                     <p className="text-xs text-muted-foreground mt-1">Les j'aime, commentaires, messages et rassos apparaîtront ici.</p>
                   </div>
                 ) : (
-                  items.map((n: any) => (
+                  display.map((n: any) => (
                     <button
                       key={n.id}
                       onClick={() => {
-                        if (!n.read) markOne.mutate(n.id);
+                        if (!n.read) markMany.mutate(n.ids);
                         setOpen(false);
                         go(n.url);
                       }}

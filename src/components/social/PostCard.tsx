@@ -3,18 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { createPortal } from "react-dom";
 import { Heart, MessageCircle, Share2, Trash2, Pencil, MoreHorizontal, Eye, X, Check } from "lucide-react";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { CommentsSheet } from "@/components/social/CommentsSheet";
 
 type PostAuthor = {
@@ -137,18 +128,37 @@ export function PostCard({
     },
   });
 
-  // Delete post
+  // Suppression : tout est retiré côté serveur (j'aime, commentaires, alertes), puis les fichiers
   const deletePost = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("posts").delete().eq("id", post.id);
+      const { data, error } = await supabase.rpc("delete_my_post", { p_post: post.id });
       if (error) throw error;
+      try {
+        const urls: string[] = Array.isArray(data) ? data : [];
+        const paths = urls
+          .map((u) => {
+            const m = u.match(/\/post-media\/([^?]+)/);
+            return m ? decodeURIComponent(m[1]) : null;
+          })
+          .filter(Boolean) as string[];
+        if (paths.length) await supabase.storage.from("post-media").remove(paths);
+      } catch {
+        /* le nettoyage des fichiers ne doit jamais bloquer la suppression */
+      }
     },
     onSuccess: () => {
+      setConfirmDelete(false);
       toast.success("Publication supprimée");
-      invalidatePosts();
-      onDeleted?.();
+      // On laisse la fenêtre de confirmation se fermer avant de retirer la publication de l'écran
+      setTimeout(() => {
+        invalidatePosts();
+        onDeleted?.();
+      }, 150);
     },
-    onError: () => toast.error("Erreur lors de la suppression"),
+    onError: (e: any) => {
+      setConfirmDelete(false);
+      toast.error("Suppression impossible : " + (e?.message ?? "erreur"));
+    },
   });
 
   // Edit post content
@@ -330,25 +340,41 @@ export function PostCard({
         <CommentsSheet postId={post.id} onClose={() => setShowComments(false)} onSent={invalidatePosts} variant="post" />
       )}
 
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette publication ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est définitive. La publication, ses likes et ses commentaires seront supprimés.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deletePost.mutate()}
-              className="bg-red-600 text-white hover:bg-red-600/90"
+      {confirmDelete &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center bg-black/60"
+            onClick={() => !deletePost.isPending && setConfirmDelete(false)}
+          >
+            <div
+              className="w-full sm:max-w-sm bg-[#101319] border border-white/10 rounded-t-3xl sm:rounded-3xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] space-y-3"
+              onClick={(e) => e.stopPropagation()}
             >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <h2 className="font-bold">Supprimer cette publication ?</h2>
+              <p className="text-xs text-muted-foreground">
+                Cette action est définitive. La publication, ses j'aime et ses commentaires seront supprimés.
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deletePost.isPending}
+                  className="flex-1 py-3 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold hover:bg-white/10 transition disabled:opacity-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={() => deletePost.mutate()}
+                  disabled={deletePost.isPending}
+                  className="flex-1 py-3 rounded-xl bg-red-600 text-white text-sm font-semibold disabled:opacity-60 transition"
+                >
+                  {deletePost.isPending ? "..." : "Supprimer"}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </article>
   );
 }

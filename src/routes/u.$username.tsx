@@ -169,7 +169,7 @@ function PublicProfile() {
             </div>
           )}
           <div className="flex-1 grid grid-cols-3 text-center">
-            <StatBlock value={profile.posts_count ?? posts.length} label="Posts" />
+            <StatBlock value={posts.length} label="Posts" />
             <StatBlock value={profile.followers_count ?? 0} label="Abonnés" />
             <StatBlock value={profile.following_count ?? 0} label="Abonnements" />
           </div>
