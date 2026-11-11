@@ -113,7 +113,7 @@ export function EventChat({
   const messagesKey = ["event-messages", eventId];
   const { data: messages = [] } = useQuery({
     queryKey: messagesKey,
-    refetchInterval: 3000,
+    refetchInterval: 6000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_messages")
@@ -143,7 +143,7 @@ export function EventChat({
   const viewsKey = ["event-views", eventId, myId];
   const { data: openedIds = [] } = useQuery({
     queryKey: viewsKey,
-    refetchInterval: 6000,
+    refetchInterval: 20000,
     queryFn: async () => {
       const { data } = await supabase.from("event_message_views").select("message_id").eq("user_id", myId);
       return (data ?? []).map((v: any) => v.message_id as string);

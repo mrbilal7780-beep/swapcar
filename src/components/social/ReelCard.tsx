@@ -11,11 +11,13 @@ import { CommentsSheet } from "@/components/social/CommentsSheet";
 export function ReelCard({
   post,
   isActive,
+  near = true,
   muted,
   onToggleMute,
 }: {
   post: FeedPost;
   isActive: boolean;
+  near?: boolean;
   muted: boolean;
   onToggleMute: () => void;
 }) {
@@ -29,6 +31,16 @@ export function ReelCard({
   const initials = (post.author?.display_name ?? post.author?.username ?? "?").slice(0, 2).toUpperCase();
   const handle = post.author?.username ?? post.author_id.slice(0, 8);
   const profileParam = post.author?.username ?? post.author_id;
+
+  // La vidéo n'est téléchargée que si elle est affichée ou juste à côté (évite de charger 10 vidéos d'un coup)
+  const load = isActive || near;
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || load) return;
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+  }, [load]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -174,7 +186,8 @@ export function ReelCard({
       )}
       <video
         ref={videoRef}
-        src={post.media_urls?.[0]}
+        src={load ? post.media_urls?.[0] : undefined}
+        preload={isActive ? "auto" : "metadata"}
         loop
         muted={muted}
         playsInline

@@ -1,4 +1,5 @@
 import { compressImage } from "@/lib/image";
+import { checkPickedFile } from "@/components/social/PrivateMedia";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,9 +31,14 @@ function CreatePost() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = e.target.files?.[0];
     if (!picked) return;
+    // Vidéo : 45 secondes et 30 Mo maximum (garde l'app rapide pour tout le monde)
+    if (!(await checkPickedFile(picked))) {
+      e.target.value = "";
+      return;
+    }
     setFile(picked);
     setPreview(URL.createObjectURL(picked));
   };

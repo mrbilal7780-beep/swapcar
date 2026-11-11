@@ -57,7 +57,7 @@ export function CommentsSheet({
 
   const { data: comments = [], isLoading } = useQuery({
     queryKey: ["comments", postId],
-    refetchInterval: 8000,
+    refetchInterval: 15000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("comments")

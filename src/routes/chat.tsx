@@ -92,7 +92,7 @@ function ChatPage() {
   const { data: conversations = [] } = useQuery({
     queryKey: ["conversations", user?.id],
     enabled: !!user,
-    refetchInterval: 10000,
+    refetchInterval: 20000,
     queryFn: async () => {
       const { data } = await supabase
         .from("messages")
@@ -245,7 +245,7 @@ function Conversation({
   const viewsKey = ["message-views", myId];
   const { data: openedIds = [] } = useQuery({
     queryKey: viewsKey,
-    refetchInterval: 8000,
+    refetchInterval: 20000,
     queryFn: async () => {
       const { data } = await supabase.from("message_views").select("message_id").eq("user_id", myId);
       return (data ?? []).map((v: any) => String(v.message_id));
@@ -300,7 +300,7 @@ function Conversation({
 
   const { data: messages = [] } = useQuery({
     queryKey: ["messages", myId, otherId],
-    refetchInterval: 3000,
+    refetchInterval: 10000,
     queryFn: async () => {
       const { data } = await supabase
         .from("messages")
@@ -317,7 +317,7 @@ function Conversation({
   const wallpaperKey = ["chat-wallpaper", userA, userB];
   const { data: wp } = useQuery({
     queryKey: wallpaperKey,
-    refetchInterval: 4000,
+    refetchInterval: 15000,
     queryFn: async () => {
       const { data } = await supabase
         .from("chat_wallpapers")

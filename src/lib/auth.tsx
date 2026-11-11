@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode, useRef } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Navigate, useRouter } from "@tanstack/react-router";
@@ -18,15 +18,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const qc = useQueryClient();
+  const lastUserId = useRef<string | null>(null);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       setLoading(false);
-      router.invalidate();
-      qc.invalidateQueries();
+      // On ne recharge toutes les données que si la personne connectée change (connexion, déconnexion).
+      // Un simple retour sur l'onglet ou le renouvellement du jeton ne doit plus tout relancer.
+      const uid = s?.user?.id ?? null;
+      if (event === "SIGNED_OUT" || uid !== lastUserId.current) {
+        lastUserId.current = uid;
+        router.invalidate();
+        qc.invalidateQueries();
+      }
     });
     supabase.auth.getSession().then(({ data }) => {
+      lastUserId.current = data.session?.user?.id ?? null;
       setSession(data.session);
       setLoading(false);
     });

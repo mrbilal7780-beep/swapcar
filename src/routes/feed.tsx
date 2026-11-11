@@ -215,6 +215,8 @@ function ReelsFeed() {
     );
   }
 
+  const activeIdx = posts.findIndex((p) => p.id === activeId);
+
   return (
     <div className="relative h-[100dvh] bg-black overflow-hidden">
       {/* Tabs en surimpression */}
@@ -245,7 +247,7 @@ function ReelsFeed() {
         </div>
       ) : (
         <div ref={containerRef} className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide">
-          {posts.map((post) => (
+          {posts.map((post, idx) => (
             <div
               key={post.id}
               data-post-id={post.id}
@@ -257,6 +259,7 @@ function ReelsFeed() {
               <ReelCard
                 post={toFeedPost(post)}
                 isActive={activeId === post.id}
+                near={activeIdx < 0 ? idx < 2 : Math.abs(idx - activeIdx) <= 1}
                 muted={muted}
                 onToggleMute={() => setMuted((m) => !m)}
               />
