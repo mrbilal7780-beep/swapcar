@@ -16,6 +16,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as GarageRouteImport } from './routes/garage'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as ExploreRouteImport } from './routes/explore'
@@ -62,6 +63,11 @@ const MapRoute = MapRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GarageRoute = GarageRouteImport.update({
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
   '/garage': typeof GarageRoute
+  '/legal': typeof LegalRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
   '/garage': typeof GarageRoute
+  '/legal': typeof LegalRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/explore': typeof ExploreRoute
   '/feed': typeof FeedRoute
   '/garage': typeof GarageRoute
+  '/legal': typeof LegalRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/matches': typeof MatchesRoute
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/feed'
     | '/garage'
+    | '/legal'
     | '/login'
     | '/map'
     | '/matches'
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/feed'
     | '/garage'
+    | '/legal'
     | '/login'
     | '/map'
     | '/matches'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/feed'
     | '/garage'
+    | '/legal'
     | '/login'
     | '/map'
     | '/matches'
@@ -263,6 +275,7 @@ export interface RootRouteChildren {
   ExploreRoute: typeof ExploreRoute
   FeedRoute: typeof FeedRoute
   GarageRoute: typeof GarageRoute
+  LegalRoute: typeof LegalRoute
   LoginRoute: typeof LoginRoute
   MapRoute: typeof MapRoute
   MatchesRoute: typeof MatchesRoute
@@ -326,6 +339,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/garage': {
@@ -423,6 +443,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreRoute: ExploreRoute,
   FeedRoute: FeedRoute,
   GarageRoute: GarageRoute,
+  LegalRoute: LegalRoute,
   LoginRoute: LoginRoute,
   MapRoute: MapRoute,
   MatchesRoute: MatchesRoute,
